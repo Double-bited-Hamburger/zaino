@@ -38,6 +38,7 @@ body:
     attributes:
       label: Struttura dei dati (facoltativo, per ClasseViva)
       description: |
-        Lancia `py main.py --dump` e incolla l'output: contiene **solo** nomi dei campi e tipi, nessun contenuto.
+        Da un terminale aperto nella cartella del programma lancia `avvia.bat --dump` (Windows) oppure `./avvia.sh --dump` (Linux e macOS)
+        e incolla l'output: contiene **solo** nomi dei campi e tipi, nessun contenuto.
         Rileggilo comunque prima di incollarlo.
       render: text

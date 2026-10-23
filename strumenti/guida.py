@@ -200,8 +200,9 @@ tabella(["Problema", "Cosa fare"], [
     ["Il telefono non trova il PC", "App del PC aperta con la sincronizzazione attiva, stessa rete (non quella «ospiti»), "
                                      "Python consentito dal firewall sulle reti private (porta 8766)."],
     ["Si vede ancora la grafica vecchia", "Ricarica la pagina con Ctrl+F5."],
-    ["«Errore interno» o registro cambiato", "I dettagli sono in cache/errori.log. Con py main.py --dump l'app stampa solo la "
-                                             "struttura dei dati, senza contenuti: si può allegare a una segnalazione su GitHub."],
+    ["«Errore interno» o registro cambiato", "I dettagli sono in cache/errori.log. Con avvia.bat --dump (./avvia.sh --dump su Linux e "
+                                             "macOS), da un terminale aperto nella cartella del programma, l'app stampa solo la struttura "
+                                             "dei dati, senza contenuti: si può allegare a una segnalazione su GitHub."],
 ], [52, 118])
 
 titolo("Sicurezza e dati personali")
