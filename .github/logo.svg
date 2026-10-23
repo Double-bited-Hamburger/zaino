@@ -1,0 +1,6 @@
+<!-- L'icona dell'app Android (android/app/src/main/res/drawable/ic_icona.xml) per il README: un foglio del registro con tre righe, la prima spuntata. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <rect width="108" height="108" rx="26" fill="#2A78D6"/>
+  <path fill="#FFFFFF" d="M37,30h34a5,5 0,0 1,5 5v38a5,5 0,0 1,-5 5H37a5,5 0,0 1,-5 -5V35a5,5 0,0 1,5 -5z"/>
+  <path fill="none" stroke="#2A78D6" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M40,43l4,4l7,-8M57,43h12M41,56h28M41,67h20"/>
+</svg>
