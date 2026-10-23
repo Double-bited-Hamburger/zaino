@@ -1,5 +1,10 @@
 # Novità
 
+## Prossima versione
+
+- **ClasseViva, compiti**: Spaggiari ha spostato i compiti nella nuova sezione «Compiti», che l'API dell'app non mette più nell'agenda: si vedevano solo quelli che alcuni prof scrivono ancora lì. Ora Zaino li legge dall'API del sito web.spaggiari.eu (un secondo accesso, con le stesse credenziali), insieme alla data in cui sono stati assegnati. Un compito presente in tutti e due i posti compare una volta sola. Se il sito non risponde il resto si aggiorna lo stesso: restano i compiti letti l'ultima volta e compare un avviso. Percorsi e campi vengono da [open-viva/endpoints](https://github.com/open-viva/endpoints).
+- **Struttura dei dati per le segnalazioni**: il comando è `avvia.bat --dump` su Windows e `./avvia.sh --dump` su Linux e macOS, da un terminale aperto nella cartella del programma. `py main.py --dump`, indicato finora nel README, nella guida e nel modulo delle issue, non trova le librerie dell'app, che dalla 0.2.1 stanno in `.venv`.
+
 ## 0.5.0
 
 Prima versione stabile: tutta l'interfaccia è stata ridisegnata, scheda per scheda.

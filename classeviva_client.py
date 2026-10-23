@@ -1,10 +1,14 @@
 """Client per il registro ClasseViva (Spaggiari), tramite l'API usata dall'app ufficiale per studenti e famiglie (sola lettura).
 
 Sperimentale: l'API non è documentata da Spaggiari. Percorsi e campi vengono da progetti open source che la usano
-(aiocvv, Classeviva-Official-Endpoints): se qualcosa non torna con il tuo account, segnalalo nelle issue.
+(aiocvv, Classeviva-Official-Endpoints, open-viva/endpoints): se qualcosa non torna con il tuo account, segnalalo nelle issue.
+
+I compiti della sezione «Compiti» di ClasseViva non compaiono nell'agenda dell'API dell'app (ci sono solo quelli che
+alcuni prof scrivono ancora in agenda): si leggono dall'API del sito web.spaggiari.eu, con un accesso a parte.
 """
 
 import re
+import secrets
 from datetime import date, timedelta
 
 import requests
@@ -15,6 +19,17 @@ API = "https://web.spaggiari.eu/rest/v1"
 TIMEOUT = 30
 # Le stesse intestazioni dell'app ClasseViva per Android: senza, l'API rifiuta le richieste.
 INTESTAZIONI = {"User-Agent": "CVVS/std/4.1.7 Android/10", "Z-Dev-Apikey": "Tg1NWEwNGIgIC0K", "Content-Type": "application/json"}
+
+# L'API del sito, per i compiti: si accede come il browser, con un cookie di sessione al posto del token.
+SITO = "https://web.spaggiari.eu"
+INTESTAZIONI_SITO = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:157.0) Gecko/20100101 Firefox/157.0",
+    "Accept": "*/*",
+    "Accept-Language": "it-IT,it;q=0.9",
+    "Origin": SITO,
+    "Referer": f"{SITO}/home/app/default/login.php?target=atv&mode=",
+    "X-Requested-With": "XMLHttpRequest",  # senza queste il firewall del sito risponde 403
+}
 
 # L'agenda (verifiche, compiti, annotazioni) si legge da un mese fa a due mesi avanti.
 GIORNI_INDIETRO = 30
@@ -47,6 +62,7 @@ class ClassevivaClient:
         self.session = requests.Session()
         self.session.headers.update(INTESTAZIONI)
         self.studente = None
+        self.ident = None  # lo studente con cui si è entrati (es. S1234567X), per scegliere lo stesso anche sul sito
         self.scelte = []  # gli studenti collegati all'account, se più d'uno: [{"ident", "name"}]
         self.avviso = None  # per esempio: account di un genitore con più figli
 
@@ -87,7 +103,7 @@ class ClassevivaClient:
         if not numero:
             raise ClassevivaError("ClasseViva non ha indicato lo studente di questo account.")
         self.session.headers["Z-Auth-Token"] = token
-        self.studente = numero
+        self.studente, self.ident = numero, identita
 
     def _api(self, percorso):
         """Una chiamata all'API; None se la sezione non esiste o la scuola l'ha disattivata."""
@@ -103,6 +119,44 @@ class ClassevivaClient:
         except ValueError:
             return None
 
+    def _accedi_sito(self, sito, azione, campi):
+        """Un passo dell'accesso al sito; restituisce data.auth della risposta."""
+        risposta = sito.post(f"{SITO}/auth-p7/app/default/AuthApi4.php", params={"a": azione}, data=campi, timeout=TIMEOUT, allow_redirects=False)
+        try:
+            dati = risposta.json()
+        except ValueError:
+            dati = None
+        auth = dati["data"].get("auth") if isinstance(dati, dict) and isinstance(dati.get("data"), dict) else None
+        if risposta.status_code != 200 or not isinstance(auth, dict):
+            raise ClassevivaError(f"il sito non ha accettato l'accesso (risposta {risposta.status_code})")
+        return auth
+
+    def _sito(self, sito, percorso):
+        risposta = sito.get(f"{SITO}/rest/w1/{percorso}", timeout=TIMEOUT, allow_redirects=False)
+        if risposta.status_code != 200:
+            raise ClassevivaError(f"il sito ha risposto {risposta.status_code}")
+        try:
+            return risposta.json()
+        except ValueError:
+            raise ClassevivaError("il sito ha dato una risposta illeggibile") from None
+
+    def compiti(self):
+        """I compiti della sezione «Compiti», dall'API del sito (percorsi e campi da open-viva/endpoints)."""
+        sito = requests.Session()
+        sito.headers.update(INTESTAZIONI_SITO)
+        # Come fa il browser: il codice di sessione lo propone chi accede, il login lo rende valido.
+        sito.cookies.set("webrole", "gen", domain="web.spaggiari.eu")
+        sito.cookies.set("PHPSESSID", secrets.token_hex(16), domain="web.spaggiari.eu")
+        auth = self._accedi_sito(sito, "aLoginPwd", {"cid": "", "uid": self.utente, "pwd": self.password, "pin": "", "target": ""})
+        if not auth.get("loggedIn") and auth.get("verified") and self.ident:
+            # Più account con le stesse credenziali (per esempio un genitore con due figli): lo stesso studente dell'app.
+            auth = self._accedi_sito(sito, "aLoginSam", {"uid": self.ident})
+        if not auth.get("loggedIn"):
+            raise ClassevivaError("il sito non ha accettato l'accesso")
+        chi = self._sito(sito, "misc/whoami")
+        numero = re.sub(r"\D", "", str(chi.get("id") or "")) if isinstance(chi, dict) else ""
+        return _elenco(self._sito(sito, f"students/{numero or self.studente}/homeworks/index"), "items")
+
     def scarica(self, oggi=None):
         """Tutti i dati grezzi, così come li restituisce ClasseViva (poche chiamate: l'API ha limiti stretti)."""
         oggi = oggi or date.today()
@@ -111,7 +165,7 @@ class ClassevivaClient:
         if voti is None:
             voti = self._api("grades")
         scheda = self._api("card")
-        return {
+        grezzo = {
             "card": scheda["card"] if isinstance(scheda, dict) and isinstance(scheda.get("card"), dict) else {},
             "materie": _elenco(self._api("subjects"), "subjects"),
             "periodi": _elenco(self._api("periods"), "periods"),
@@ -121,3 +175,11 @@ class ClassevivaClient:
             "lezioni": _elenco(self._api(f"lessons/{_giorno(inizio_anno(oggi))}/{_giorno(oggi)}"), "lessons"),
             "avviso": self.avviso,
         }
+        # Se il sito non risponde si prosegue con il resto (compiti None: non letti).
+        try:
+            grezzo["compiti"] = self.compiti()
+        except (ClassevivaError, requests.RequestException) as errore:
+            motivo = str(errore) if isinstance(errore, ClassevivaError) else "il sito non è raggiungibile"
+            grezzo["compiti"] = None
+            grezzo["avviso"] = " ".join(filter(None, (self.avviso, f"Compiti della sezione «Compiti» di ClasseViva non aggiornati: {motivo}.")))
+        return grezzo

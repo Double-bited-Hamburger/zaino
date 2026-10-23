@@ -61,11 +61,16 @@ def _scarica_nuvola(profilo, password, cache, oggi=None):
     return {"profilo": alunno, "dashboard": dashboard, "nuvola": grezzo}
 
 
-def _scarica_classeviva(profilo, password, oggi=None):
+def _scarica_classeviva(profilo, password, cache, oggi=None):
     client = ClassevivaClient(profilo["utente"], password, profilo.get("studente", ""))
     client.login()
     profili.annota_studenti(profilo["id"], client.scelte)  # per la scelta dello studente nel modulo del profilo
     grezzo = client.scarica(oggi)
+    if grezzo.get("compiti") is None:
+        # Il sito non ha risposto: restano i compiti letti l'ultima volta, invece di sparire fino al prossimo «Aggiorna».
+        precedente = (_leggi(cache) or {}).get("classeviva")
+        compiti = precedente.get("compiti") if isinstance(precedente, dict) else None
+        grezzo["compiti"] = compiti if isinstance(compiti, list) else []
     alunno, dashboard = classeviva_adatta.converti(grezzo, oggi)
     return {"profilo": alunno, "dashboard": dashboard, "classeviva": grezzo}
 
@@ -82,7 +87,7 @@ def scarica():
     if profilo.get("registro") == "nuvola":
         dati = _scarica_nuvola(profilo, password, cache)
     elif profilo.get("registro") == "classeviva":
-        dati = _scarica_classeviva(profilo, password)
+        dati = _scarica_classeviva(profilo, password, cache)
     else:
         dati = _scarica_argo(profilo, password)
     dati["scaricato"] = datetime.now().isoformat(timespec="seconds")

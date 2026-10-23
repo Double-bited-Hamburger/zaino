@@ -85,7 +85,11 @@ Per cambiarle senza toccare `config.py`, crea accanto un file `config_locale.py`
 
 Tutto passa dalle [issue](../../issues/new/choose): segnalazioni di errori, idee, richieste di nuovi registri o orari.
 
-**Non incollare mai password, voti o nomi** nelle issue. Per aiutare con un registro nuovo o con ClasseViva puoi lanciare `py main.py --dump`: scarica i dati del profilo e ne stampa **solo la struttura** (nomi dei campi e tipi, nessun contenuto). Rileggila comunque prima di incollarla.
+**Non incollare mai password, voti o nomi** nelle issue. Per aiutare con un registro nuovo o con ClasseViva l'app può scaricare i dati del profilo e stamparne **solo la struttura** (nomi dei campi e tipi, nessun contenuto). Si fa sul PC, da un terminale aperto nella cartella del programma:
+- **Windows**: `avvia.bat --dump` (per aprire il terminale lì: in Esplora file entra nella cartella, scrivi `cmd` nella barra dell'indirizzo e premi Invio);
+- **Linux e macOS**: `./avvia.sh --dump`.
+
+Con più profili aggiungi il nome, per esempio `avvia.bat --dump Mario`; senza nome usa l'ultimo aperto. Rileggi comunque l'output prima di incollarlo.
 
 Per un problema di sicurezza non aprire una issue pubblica: vedi [SECURITY.md](SECURITY.md).
 

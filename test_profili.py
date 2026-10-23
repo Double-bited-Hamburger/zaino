@@ -212,6 +212,17 @@ class Profili(Base):
         cv.assert_called_once_with("genitore@example.com", "segreta-cv", "S1111111X")
         self.assertEqual(profili.studenti(c["id"]), FIGLI)
 
+    def test_classeviva_tiene_i_compiti_se_il_sito_non_risponde(self):
+        c = profili.salva(dict(CLASSEVIVA))
+        compito = {"homeworkDesc": "Leggere il cap. 4", "expiryDate": "2026-10-10", "subjectDesc": "STORIA"}
+        with mock.patch.object(dati, "ClassevivaClient") as cv:
+            cv.return_value.scelte = []
+            dati.attiva(c)
+            cv.return_value.scarica.return_value = {"compiti": [compito]}
+            dati.scarica()
+            cv.return_value.scarica.return_value = {"compiti": None}  # il sito non ha risposto
+            self.assertEqual(dati.scarica()["classeviva"]["compiti"], [compito])
+
     def test_scarica_usa_il_registro_del_profilo(self):
         a, n = profili.salva(dict(ARGO)), profili.salva(dict(NUVOLA))
         with mock.patch.object(dati, "ArgoClient") as argo, mock.patch.object(dati, "NuvolaClient") as nuvola:
