@@ -34,7 +34,7 @@ ALIAS_MATERIE = {
 
 import os
 
-VERSIONE = "0.5.0"
+VERSIONE = "0.5.1"
 
 # Porta su cui gira l'app sul tuo PC (http://127.0.0.1:PORTA). L'app ascolta solo su questo dispositivo.
 PORTA = int(os.environ.get("PORT") or 8765)

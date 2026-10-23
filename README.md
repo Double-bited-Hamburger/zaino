@@ -1,6 +1,6 @@
 # Zaino
 
-**Versione 0.5** (prima si chiamava «Parser Compiti»). Un'app per studenti che legge il registro elettronico della scuola e l'orario WebUntis, e li mette insieme in un'unica pagina:
+**Versione 0.5.1** (prima si chiamava «Parser Compiti»). Un'app per studenti che legge il registro elettronico della scuola e l'orario WebUntis, e li mette insieme in un'unica pagina:
 - agenda delle verifiche;
 - compiti da spuntare;
 - orario con supplenze e variazioni;
@@ -14,8 +14,8 @@ Gira sul PC (Windows, ma anche Linux e macOS) e come app Android. Le due copie s
 
 | | |
 | --- | --- |
-| 📱 **Android** | **[Scarica l'APK (0.5)](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.5.0/zaino-0.5.0.apk)**: aprilo dal telefono e consenti l'installazione. Serve Android 7 o successivo. |
-| 💻 **PC** (Windows, Linux, macOS) | Scarica il codice dalla [pagina della versione](../../releases/tag/0.5.0) («Source code (zip)») e segui [Installazione sul PC](#installazione-sul-pc). |
+| 📱 **Android** | **[Scarica l'APK (0.5.1)](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.5.1/zaino-0.5.1.apk)**: aprilo dal telefono e consenti l'installazione. Serve Android 7 o successivo. |
+| 💻 **PC** (Windows, Linux, macOS) | Scarica il codice dalla [pagina della versione](../../releases/tag/0.5.1) («Source code (zip)») e segui [Installazione sul PC](#installazione-sul-pc). |
 
 Tutte le versioni, con l'impronta SHA-256 di ogni APK, sono nelle [Release](../../releases). Installa l'APK solo da qui: uno preso altrove potrebbe essere stato modificato per rubare le password.
 
@@ -53,7 +53,7 @@ Orario: WebUntis. Se la tua scuola usa altro, apri una issue.
 
 Funziona su Windows, Linux e macOS. Serve [Python](https://www.python.org/downloads/) 3.12 o successivo.
 
-1. Scarica il codice dalla [pagina della versione](../../releases/tag/0.5.0) («Source code (zip)») e scompattalo in una cartella.
+1. Scarica il codice dalla [pagina della versione](../../releases/tag/0.5.1) («Source code (zip)») e scompattalo in una cartella.
 2. Avvialo:
    - **Windows**: doppio clic su `avvia.bat`;
    - **Linux e macOS**: da un terminale aperto nella cartella, `./avvia.sh` (oppure `sh avvia.sh`).
