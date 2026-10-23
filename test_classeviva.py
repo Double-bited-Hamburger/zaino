@@ -5,6 +5,8 @@ import unittest
 from datetime import date
 from unittest import mock
 
+import requests
+
 import classeviva_adatta
 import classeviva_client
 import dati
@@ -56,6 +58,14 @@ GREZZO = {
     "avviso": None,
 }
 
+# Un compito della sezione «Compiti», come lo dà il sito (campi da open-viva/endpoints).
+COMPITO_SITO = {
+    "evtId": 125021, "evtCode": "NEWDC", "teacherId": 7654321, "teacherName": "VERDI LUCA", "homeworkDesc": "Leggere il cap. 4",
+    "homeworkDone": False, "homeworkMarkedDone": False, "assignmentDate": "2026-10-06", "assignmentTime": None, "expiryDate": "2026-10-10",
+    "expiryTime": None, "studentAttachmentsAllowed": False, "subjectId": 12, "subjectDesc": "STORIA", "lastStudentMsg": None,
+    "lastTeacherMsg": None, "newMessages": False, "teacherFiles": [], "teacherLinks": [], "studentFiles": [], "correctedFiles": [],
+}
+
 
 class Adattatore(unittest.TestCase):
     def setUp(self):
@@ -93,6 +103,17 @@ class Adattatore(unittest.TestCase):
         self.assertEqual(ore[("2026-10-07", 1)], "STORIA")
         self.assertNotIn("Sostegno", self.pagina["materie"])
 
+    def test_compiti_della_sezione_compiti(self):
+        # Lo stesso compito di matematica è anche in agenda, senza materia: resta una volta, quello del sito con materia e data di assegnazione.
+        doppio = {**COMPITO_SITO, "homeworkDesc": "Es. 1-5  pag. 40", "expiryDate": "2026-10-09", "assignmentDate": "2026-10-02", "subjectDesc": "MATEMATICA"}
+        grezzo = json.loads(json.dumps({**GREZZO, "compiti": [COMPITO_SITO, doppio, {"homeworkDesc": "Senza consegna"}, {"expiryDate": "2026-10-10"}, None]}))
+        grezzo["agenda"][0]["subjectDesc"] = None
+        pagina = dati.elabora({"classeviva": grezzo, "dashboard": {}, "profilo": {}}, OGGI)
+        self.assertEqual([(c["materia"], c["testo"], c["consegna"], c["assegnato"], c["docente"]) for c in pagina["compiti"]], [
+            ("Matematica", "Es. 1-5 pag. 40", "2026-10-09", "2026-10-02", "VERDI LUCA"),
+            ("Storia", "Leggere il cap. 4", "2026-10-10", "2026-10-06", "VERDI LUCA"),
+        ])
+
     def test_dati_malformati_non_bloccano(self):
         rotto = {"card": [], "materie": "x", "voti": [None, {"decimalValue": "dieci"}], "agenda": [{"evtCode": "AGHW"}], "assenze": [{}], "lezioni": [{}]}
         pagina = dati.elabora({"classeviva": rotto, "dashboard": {}, "profilo": {}}, OGGI)
@@ -110,18 +131,25 @@ class Risposta:
 
 
 class SessioneFinta:
-    """Al posto di requests.Session: risponde secondo il percorso e ricorda cosa le è stato chiesto."""
+    """Al posto di requests.Session: risponde secondo il percorso e ricorda cosa le è stato chiesto.
 
-    def __init__(self, risposte):
-        self.risposte, self.headers, self.chiamate = risposte, {}, []
+    Le chiamate all'API del sito hanno il percorso che comincia con «sito:»; il suo login risponde con risposte["accesso al sito"].
+    """
 
-    def post(self, url, json=None, **kwargs):
+    def __init__(self, risposte, chiamate):
+        self.risposte, self.headers, self.cookies, self.chiamate = risposte, {}, requests.cookies.RequestsCookieJar(), chiamate
+
+    def post(self, url, json=None, data=None, params=None, **kwargs):
+        if "/AuthApi4.php" in url:
+            self.chiamate.append(("POST", f"{url}?a={params['a']}", data, dict(self.headers)))
+            return self.risposte.get("accesso al sito", lambda azione, campi: Risposta(404))(params["a"], data)
         self.chiamate.append(("POST", url, json, dict(self.headers)))
         return self.risposte["login"](json)
 
     def get(self, url, **kwargs):
         self.chiamate.append(("GET", url, None, dict(self.headers)))
-        percorso = url.split("/students/1234567/")[1]
+        sito = "/rest/w1/" in url
+        percorso = ("sito:" if sito else "") + url.split("/rest/w1/" if sito else "/rest/v1/")[1].removeprefix("students/1234567/")
         for prefisso, risposta in self.risposte.items():
             if percorso.startswith(prefisso):
                 return risposta
@@ -134,11 +162,29 @@ def login_giusto(corpo):
     return Risposta(200, {"ident": "S1234567X", "firstName": "MARIO", "lastName": "ROSSI", "token": "tok", "expire": "2026-10-08T12:00:00+02:00"})
 
 
+def accesso_al_sito(azione, campi):
+    entrato = azione == "aLoginSam" or campi.get("pwd") == "segreta"
+    return Risposta(200, {"data": {"auth": {"verified": entrato, "loggedIn": entrato, "accountInfo": {"type": "S", "id": 1234567}}}, "error": []})
+
+
+SITO = {
+    "accesso al sito": accesso_al_sito,
+    "sito:misc/whoami": Risposta(200, {"id": "1234567", "account_type": "S"}),
+    "sito:homeworks/index": Risposta(200, {"items": [COMPITO_SITO]}),
+}
+
+
 class Client(unittest.TestCase):
     def client(self, risposte, password="segreta", scelta=""):
-        sessione = SessioneFinta(risposte)
-        with mock.patch.object(classeviva_client.requests, "Session", lambda: sessione):
-            return ClassevivaClient("S1234567X", password, scelta), sessione
+        """Il client con sessioni finte (quella dell'app e quella del sito), che restano finte per tutta la prova."""
+        chiamate, sessioni = [], []
+
+        def nuova_sessione():
+            sessioni.append(SessioneFinta(risposte, chiamate))
+            return sessioni[-1]
+
+        self.enterContext(mock.patch.object(classeviva_client.requests, "Session", nuova_sessione))
+        return ClassevivaClient("S1234567X", password, scelta), sessioni[0]
 
     def test_login_e_intestazioni(self):
         client, sessione = self.client({"login": login_giusto})
@@ -208,12 +254,60 @@ class Client(unittest.TestCase):
             "agenda/all/20260908/20261207": Risposta(200, {"agenda": GREZZO["agenda"]}),
             "absences/details": Risposta(200, {"events": GREZZO["assenze"]}),
             "lessons/20260901/20261008": Risposta(200, {"lessons": GREZZO["lezioni"]}),
+            **SITO,
         }
         client, _ = self.client(risposte)
         client.login()
         grezzo = client.scarica(OGGI)
         self.assertEqual((len(grezzo["voti"]), len(grezzo["agenda"]), len(grezzo["lezioni"]), grezzo["periodi"]), (4, 5, 5, []))
         self.assertEqual(grezzo["card"]["lastName"], "ROSSI")
+        self.assertEqual((grezzo["compiti"], grezzo["avviso"]), ([COMPITO_SITO], None))
+
+    def test_compiti_dal_sito(self):
+        client, sessione = self.client({"login": login_giusto, **SITO})
+        client.login()
+        self.assertEqual(client.compiti(), [COMPITO_SITO])
+        metodo, url, campi, intestazioni = next(c for c in sessione.chiamate if "AuthApi4.php" in c[1])
+        self.assertEqual((metodo, url), ("POST", "https://web.spaggiari.eu/auth-p7/app/default/AuthApi4.php?a=aLoginPwd"))
+        self.assertEqual(campi, {"cid": "", "uid": "S1234567X", "pwd": "segreta", "pin": "", "target": ""})
+        self.assertEqual((intestazioni["Origin"], intestazioni["X-Requested-With"]), ("https://web.spaggiari.eu", "XMLHttpRequest"))
+        self.assertNotIn("Z-Dev-Apikey", intestazioni)  # il sito non è l'app: niente chiave né token dell'app
+        self.assertIn(("GET", "https://web.spaggiari.eu/rest/w1/students/1234567/homeworks/index"), [c[:2] for c in sessione.chiamate])
+
+    def test_compiti_dal_sito_con_piu_account(self):
+        def accesso(azione, campi):
+            if azione == "aLoginPwd":  # credenziali giuste, ma valgono per più account: bisogna sceglierne uno
+                return Risposta(200, {"data": {"auth": {"verified": True, "loggedIn": False}}})
+            return accesso_al_sito(azione, campi)
+
+        client, sessione = self.client({"login": self.login_con_scelte(self.GENITORE, self.MARIO, self.LUCIA), **SITO, "accesso al sito": accesso})
+        client.login()
+        self.assertEqual(client.compiti(), [COMPITO_SITO])
+        scelta = [c for c in sessione.chiamate if c[1].endswith("?a=aLoginSam")]
+        self.assertEqual([c[2] for c in scelta], [{"uid": "S1234567X"}])  # lo stesso studente dell'app
+
+    def test_sito_che_non_risponde_non_blocca_il_resto(self):
+        def firewall(azione, campi):
+            return Risposta(403)  # pagina HTML del firewall, non JSON
+
+        def irraggiungibile(azione, campi):
+            raise requests.ConnectionError("rete giù")
+
+        for accesso, motivo in ((firewall, "risposta 403"), (irraggiungibile, "non è raggiungibile")):
+            client, _ = self.client({"login": login_giusto, "card": Risposta(200, {"card": GREZZO["card"]}), **SITO, "accesso al sito": accesso})
+            client.login()
+            grezzo = client.scarica(OGGI)
+            self.assertIsNone(grezzo["compiti"])
+            self.assertEqual(grezzo["card"]["lastName"], "ROSSI")
+            self.assertIn("non aggiornati", grezzo["avviso"])
+            self.assertIn(motivo, grezzo["avviso"])
+
+    def test_password_sbagliata_sul_sito(self):
+        client, _ = self.client({"login": login_giusto, **SITO})
+        client.login()
+        client.password = "cambiata"
+        with self.assertRaisesRegex(ClassevivaError, "non ha accettato"):
+            client.compiti()
 
     def test_sessione_scaduta_e_troppe_richieste(self):
         for stato, messaggio in ((401, "scaduta"), (429, "troppe richieste")):

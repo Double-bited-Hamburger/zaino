@@ -2,6 +2,7 @@
 
 Su ClasseViva:
 - l'agenda contiene sia i compiti (codice AGHW, alla data di consegna) sia le annotazioni (AGNT), tra cui le verifiche;
+- i compiti della sezione «Compiti» arrivano a parte, dal sito, con la data in cui sono stati assegnati e quella di consegna;
 - i voti blu, o annullati, non fanno media;
 - le assenze hanno un codice: ABA0 assenza, ABR0 ritardo, ABR1 ritardo breve, ABU0 uscita anticipata.
 """
@@ -114,6 +115,22 @@ def _agenda(grezzo, docenti):
     return compiti, promemoria
 
 
+def _compiti_sito(grezzo):
+    compiti = []
+    for voce in _lista(grezzo.get("compiti")):
+        testo, consegna = _testo(voce.get("homeworkDesc")).strip(), _data(voce.get("expiryDate"))
+        if not testo or not consegna:
+            continue
+        compiti.append({"datGiorno": _data(voce.get("assignmentDate")), "materia": _testo(voce.get("subjectDesc")), "docente": _testo(voce.get("teacherName")),
+                        "compiti": [{"compito": testo, "dataConsegna": consegna}]})
+    return compiti
+
+
+def _consegna_e_testo(voce):
+    compito = voce["compiti"][0]
+    return compito["dataConsegna"], " ".join(compito["compito"].split())
+
+
 def _appello(grezzo):
     appello = []
     for evento in _lista(grezzo.get("assenze")):
@@ -142,6 +159,11 @@ def converti(grezzo, oggi=None):
     """(profilo, dashboard) nella forma prodotta dal client Argo."""
     materie, docenti = _materie(grezzo)
     compiti, promemoria = _agenda(grezzo, docenti)
+    dal_sito = _compiti_sito(grezzo)
+    # Un compito che c'è sia in agenda sia nella sezione «Compiti» si tiene una volta, nella versione del sito
+    # (che sa anche quando è stato assegnato).
+    doppi = {_consegna_e_testo(c) for c in dal_sito}
+    compiti = [c for c in compiti if _consegna_e_testo(c) not in doppi] + dal_sito
     lezioni, voti = _lezioni(grezzo), _voti(grezzo)
     noti = {m["materia"] for m in materie}
     # Materie che compaiono nei voti o nelle lezioni ma non nell'elenco: si aggiungono, così nessuna resta fuori
