@@ -53,7 +53,8 @@ def main():
     ], check=True, cwd=RADICE)
     exe = DIST / "zaino.exe"
     impronta = hashlib.sha256(exe.read_bytes()).hexdigest()
-    (DIST / "zaino.exe.sha256").write_text(f"{impronta}  zaino.exe\n", encoding="utf-8")
+    # A capo Unix anche su Windows: con \r\n sha256sum -c cercherebbe un file «zaino.exe\r».
+    (DIST / "zaino.exe.sha256").write_text(f"{impronta}  zaino.exe\n", encoding="utf-8", newline="\n")
     print(f"{exe} ({exe.stat().st_size // 1024 // 1024} MB), SHA-256 {impronta}")
 
 
