@@ -121,8 +121,8 @@ class Adattatore(unittest.TestCase):
 
 
 class Risposta:
-    def __init__(self, stato=200, corpo=None):
-        self.status_code, self._corpo = stato, corpo
+    def __init__(self, stato=200, corpo=None, cookies=None):
+        self.status_code, self._corpo, self.cookies = stato, corpo, cookies or {}
 
     def json(self):
         if self._corpo is None:
@@ -301,6 +301,28 @@ class Client(unittest.TestCase):
             self.assertEqual(grezzo["card"]["lastName"], "ROSSI")
             self.assertIn("non aggiornati", grezzo["avviso"])
             self.assertIn(motivo, grezzo["avviso"])
+
+    def test_sessione_nuova_dal_login_del_sito(self):
+        # Il sito dà un PHPSESSID nuovo all'accesso: le chiamate dopo portano solo quello, altrimenti l'API risponde 401.
+        def accesso(azione, campi):
+            risposta = accesso_al_sito(azione, campi)
+            risposta.cookies = {"PHPSESSID": "nuova", "webidentity": "S1234567X", "altro": "x"}
+            return risposta
+
+        client, sessione = self.client({"login": login_giusto, **SITO, "accesso al sito": accesso})
+        client.login()
+        self.assertEqual(client.compiti(), [COMPITO_SITO])
+        accesso_fatto = next(c for c in sessione.chiamate if "AuthApi4.php" in c[1])
+        self.assertIn("webrole=gen; PHPSESSID=", accesso_fatto[3]["Cookie"])
+        for _, url, _, intestazioni in sessione.chiamate:
+            if "/rest/w1/" in url:
+                self.assertEqual(intestazioni["Cookie"], "webrole=gen; PHPSESSID=nuova; webidentity=S1234567X")
+
+    def test_sessione_rifiutata_dal_sito(self):
+        client, _ = self.client({"login": login_giusto, **SITO, "sito:misc/whoami": Risposta(401)})
+        client.login()
+        with self.assertRaisesRegex(ClassevivaError, "401"):
+            client.compiti()
 
     def test_password_sbagliata_sul_sito(self):
         client, _ = self.client({"login": login_giusto, **SITO})
