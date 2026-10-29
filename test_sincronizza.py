@@ -2,6 +2,7 @@
 
 import contextlib
 import json
+import socket
 import threading
 import unittest
 from datetime import datetime
@@ -150,6 +151,13 @@ class Rete(DueDispositivi):
         self.enterContext(mock.patch.object(sincronizza.config, "PORTA_SYNC", self.PORTA))
         self.addCleanup(sincronizza.ferma_ascolto)
 
+    def assertQuestoPc(self, indirizzo):
+        """La ricerca va anche a tutta la rete, come dal telefono: può rispondere prima dall'indirizzo di rete
+        di questo computer che da 127.0.0.1 (succede sulle macchine macOS di GitHub). Va bene uno qualsiasi dei suoi."""
+        self.assertIsNotNone(indirizzo)
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as prova:
+            prova.bind((indirizzo, 0))  # riesce solo con un indirizzo di questo computer
+
     def test_ricerca_e_scambio(self):
         with self.su(self.pc):
             a = profili.salva(dict(ARGO))
@@ -161,7 +169,7 @@ class Rete(DueDispositivi):
                 sincronizza._scambia("127.0.0.1", "SBAGLIATOSBAGLIATOAA", {"profili": {}, "eliminati": {}, "dati": {}})
             # Più ricerche di fila: il PC deve continuare a rispondere anche dopo risposte arrivate a chi ha già chiuso.
             for _ in range(4):
-                self.assertEqual(sincronizza._trova_pc(CODICE, "127.0.0.1"), "127.0.0.1")
+                self.assertQuestoPc(sincronizza._trova_pc(CODICE, "127.0.0.1"))
             unione =sincronizza._scambia("127.0.0.1", CODICE, {"profili": {}, "eliminati": {}, "dati": {}})
             self.assertEqual(unione["profili"][a["id"]]["password"], "segreta-argo")
             # In rete passa solo testo cifrato.
@@ -177,7 +185,7 @@ class Rete(DueDispositivi):
             sincronizza._ricorda(codice=CODICE)
             for _ in range(3):
                 self.assertTrue(sincronizza.avvia_ascolto(self.blocco))
-                self.assertEqual(sincronizza._trova_pc(CODICE, "127.0.0.1"), "127.0.0.1")
+                self.assertQuestoPc(sincronizza._trova_pc(CODICE, "127.0.0.1"))
                 sincronizza.ferma_ascolto()
 
     def test_telefono_senza_pc(self):
