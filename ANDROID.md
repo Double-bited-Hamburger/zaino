@@ -3,7 +3,7 @@
 L'app Android è la stessa app del PC: dentro c'è lo stesso codice Python (incorporato con Chaquopy) e la stessa pagina. Funziona da sola, anche fuori casa: scarica dai registri con le credenziali del profilo.
 
 ## Scaricare l'APK già pronto
-1. Dal telefono apri **[zaino-0.5.1.apk](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.5.1/zaino-0.5.1.apk)** (o scegli una versione nelle [Release](../../releases)).
+1. Dal telefono apri **[zaino-0.6.0.apk](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.6.0/zaino-0.6.0.apk)** (o scegli una versione nelle [Release](../../releases)).
 2. Apri il file scaricato; Android chiede di consentire l'installazione dal browser: consentila.
 3. Fatto. Per aggiornare, scarica il nuovo APK e installalo sopra: i dati restano.
 

@@ -1,6 +1,6 @@
 # Novità
 
-## Prossima versione
+## 0.6.0
 
 - **Zaino per Windows è un programma vero**: nelle Release c'è `zaino.exe`, da scaricare e aprire con un doppio clic. Non serve installare Python. Profili e dati stanno in `%APPDATA%\Zaino`; se metti `zaino.exe` nella cartella di una versione precedente, al primo avvio li porta lì da solo. La prima volta Windows può dire «Windows ha protetto il PC»: *Ulteriori informazioni → Esegui comunque* (il programma non ha una firma a pagamento).
 - **Aggiornamenti**: una volta al giorno Zaino controlla se c'è una versione nuova e, se c'è, te lo dice in alto con «Aggiorna ora» e «Più tardi». Non scarica niente da solo. Con `zaino.exe` «Aggiorna ora» scarica la versione nuova, ne controlla l'impronta SHA-256, si sostituisce e si riapre. Da Profili → Aggiornamenti puoi controllare subito o spegnere il controllo automatico.
