@@ -84,7 +84,7 @@ jobs:
           if [ -z "$(gh release view "$TAG" --json name --jq .name)" ]; then gh release edit "$TAG" --title "Zaino $VERSIONE"; fi
           if [ -z "$(gh release view "$TAG" --json body --jq .body)" ]; then
             awk -v v="## $VERSIONE" '$0==v{dentro=1; next} /^## /{dentro=0} dentro' CHANGELOG.md > note.md
-            printf '\n**APK per Android**: %s (impronta SHA-256 in %s.sha256). **PC**: «Source code (zip)» qui sotto, poi avvia.bat o avvia.sh.\n' "$NOME" "$NOME" >> note.md
+            printf '\n**Windows**: zaino.exe (si aggiorna da solo, chiedendo prima). **Android**: %s. Impronte SHA-256 nei file .sha256. **Linux e macOS**: «Source code (zip)» qui sotto, poi avvia.sh.\n' "$NOME" >> note.md
             gh release edit "$TAG" --notes-file note.md
           fi
 

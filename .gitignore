@@ -30,3 +30,7 @@ keystore.properties
 .claude/
 .vscode/
 .idea/
+
+# zaino.exe (strumenti/costruisci_exe.py)
+/build/
+/dist/

@@ -4,9 +4,11 @@ import argparse
 import os
 import secrets
 import sys
+import time
 import webbrowser
 from pathlib import Path
 
+import aggiornamenti
 import config
 import dati
 import profili
@@ -73,8 +75,11 @@ def main():
     args.add_argument("--dump", nargs="?", const="", metavar="PROFILO", help="scarica i dati di un profilo e mostra solo la loro struttura")
     args.add_argument("--senza-browser", action="store_true", help="avvia l'app senza aprire il browser")
     args.add_argument("--version", action="version", version=f"Zaino {config.VERSIONE}")
+    args.add_argument("--dopo-aggiornamento", action="store_true", help=argparse.SUPPRESS)  # lo passa la versione precedente (aggiornamenti.installa)
     opzioni = args.parse_args()
 
+    aggiornamenti.pulisci()
+    profili.importa_cartella_del_programma()
     profili.migra_vecchia_installazione()
     if opzioni.dump is not None:
         return dump(opzioni.dump)
@@ -82,18 +87,27 @@ def main():
     if not config.GETTONE:
         config.GETTONE = gettone_locale()
     indirizzo = f"http://{server.INDIRIZZO}:{config.PORTA}/?accesso={config.GETTONE}"
-    try:
-        app = server.avvia()
-    except OSError:
-        # Porta occupata: l'app è già in esecuzione, basta riaprire la pagina.
-        webbrowser.open(indirizzo)
-        return
+    # Dopo un aggiornamento la versione precedente si sta ancora chiudendo: si aspetta che liberi la porta.
+    for _ in range(40 if opzioni.dopo_aggiornamento else 1):
+        try:
+            app = server.avvia()
+            break
+        except OSError:
+            if not opzioni.dopo_aggiornamento:
+                # Porta occupata: l'app è già in esecuzione, basta riaprire la pagina.
+                webbrowser.open(indirizzo)
+                return
+            time.sleep(0.5)
+    else:
+        sys.exit("La versione precedente non si è chiusa: chiudi questa finestra e riapri Zaino.")
     print(f"Zaino {config.VERSIONE} aperto su http://{server.INDIRIZZO}:{config.PORTA}/ (solo su questo computer)")
     print("Lascia aperta questa finestra mentre lo usi. Per chiudere: Ctrl+C oppure chiudi la finestra.")
     if not profili.portachiavi_disponibile():
         print("Attenzione: il portachiavi del sistema non è disponibile, le password dei registri restano in un file della cartella profili.")
     sincronizza.avvia_ascolto(server.BLOCCO)  # solo se la sincronizzazione col telefono è stata attivata
-    if opzioni.senza_browser:
+    if opzioni.dopo_aggiornamento:
+        pass  # la pagina già aperta si ricarica da sola appena risponde la versione nuova
+    elif opzioni.senza_browser:
         print(f"Collegamento per aprire la pagina (non condividerlo): {indirizzo}")
     else:
         webbrowser.open(indirizzo)

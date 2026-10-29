@@ -33,14 +33,17 @@ ALIAS_MATERIE = {
 }
 
 import os
+import sys
 
 VERSIONE = "0.5.1"
 
 # Porta su cui gira l'app sul tuo PC (http://127.0.0.1:PORTA). L'app ascolta solo su questo dispositivo.
 PORTA = int(os.environ.get("PORT") or 8765)
 INDIRIZZO = "127.0.0.1"
-# Dove stanno profili e dati scaricati (vuoto = accanto al programma).
-DATI_DIR = os.environ.get("DATI_DIR", "")
+# zaino.exe per Windows (PyInstaller): il programma è un file solo, che un aggiornamento sostituisce.
+EXE = bool(getattr(sys, "frozen", False))
+# Dove stanno profili e dati scaricati (vuoto = accanto al programma; per zaino.exe in %APPDATA%\Zaino).
+DATI_DIR = os.environ.get("DATI_DIR") or (os.path.join(os.environ.get("APPDATA") or os.path.expanduser("~"), "Zaino") if EXE else "")
 
 # App Android: le imposta l'app stessa all'avvio (vedi ANDROID.md), a mano non servono.
 ANDROID = bool(os.environ.get("ANDROID_APP"))
@@ -49,7 +52,7 @@ CHIAVE_CREDENZIALI = os.environ.get("CHIAVE_CREDENZIALI", "")
 # Anche altri programmi possono chiamare 127.0.0.1: la pagina si fa riconoscere con questo cookie.
 # Sul telefono lo passa l'app Android, sul PC lo crea main.py (vedi gettone_locale).
 GETTONE = os.environ.get("GETTONE_LOCALE", "")
-WEB_DIR = os.environ.get("WEB_DIR", "")
+WEB_DIR = os.environ.get("WEB_DIR") or (os.path.join(sys._MEIPASS, "web") if EXE else "")
 
 # Porta su cui il PC ascolta il telefono per la sincronizzazione in rete locale (solo se attivata dall'app).
 PORTA_SYNC = int(os.environ.get("PORTA_SYNC") or 8766)

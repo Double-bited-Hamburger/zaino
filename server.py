@@ -4,6 +4,7 @@ import hmac
 import http.cookies
 import json
 import mimetypes
+import os
 import threading
 import traceback
 import urllib.parse
@@ -13,6 +14,7 @@ from pathlib import Path
 
 import requests
 
+import aggiornamenti
 import archivio
 import config
 import dati
@@ -36,7 +38,7 @@ INDIRIZZO = config.INDIRIZZO
 BLOCCO = threading.RLock()
 UN_ANNO = 365 * 86400
 SENZA_GETTONE = """<!doctype html><meta charset="utf-8"><title>Zaino</title>
-<p style="font:16px system-ui;margin:2em">Apri il registro con <b>avvia.bat</b> su Windows o <b>avvia.sh</b> su Linux e macOS:
+<p style="font:16px system-ui;margin:2em">Apri il registro con <b>zaino.exe</b> (o <b>avvia.bat</b>) su Windows o <b>avvia.sh</b> su Linux e macOS:
 per proteggere i tuoi dati la pagina risponde solo al collegamento che apre l'app.</p>""".encode()
 SICUREZZA = (
     ("X-Content-Type-Options", "nosniff"),
@@ -168,6 +170,9 @@ class Gestore(BaseHTTPRequestHandler):
             if percorso.startswith("/api/") or not self._host_locale():
                 return self._rispondi(403, {"errore": "Accesso non consentito."})
             return self._rispondi(403, SENZA_GETTONE, "text/html; charset=utf-8")
+        if percorso == "/api/aggiornamenti":
+            # Fuori da BLOCCO: la risposta di GitHub può tardare, e la pagina deve continuare a rispondere.
+            return self._rispondi(200, aggiornamenti.stato())
         with BLOCCO:
             self._scegli_profilo()
             self._get(percorso)
@@ -232,9 +237,28 @@ class Gestore(BaseHTTPRequestHandler):
                 return self._rispondi(200, sincronizza.comando(corpo, BLOCCO))
             except sincronizza.ErroreSincronizzazione as errore:
                 return self._rispondi(400, {"errore": str(errore)})
+        if self.path == "/api/aggiornamenti":
+            return self._aggiornamenti(corpo)
         with BLOCCO:
             self._scegli_profilo()
             self._post(corpo)
+
+    def _aggiornamenti(self, corpo):
+        azione = corpo.get("azione")
+        if azione == "controlla":
+            return self._rispondi(200, aggiornamenti.stato(forza=True))
+        if azione == "automatico":
+            return self._rispondi(200, aggiornamenti.imposta(bool(corpo.get("attivo"))))
+        if azione != "installa":
+            return self._rispondi(400, {"errore": "Richiesta non valida."})
+        try:
+            with BLOCCO:  # niente scaricamenti dal registro a metà mentre l'app si sostituisce
+                versione = aggiornamenti.installa()
+        except aggiornamenti.ErroreAggiornamento as errore:
+            return self._rispondi(400, {"errore": str(errore)})
+        self._rispondi(200, {"ok": True, "versione": versione})
+        # La versione nuova è partita e aspetta la porta: questa si chiude appena la risposta è arrivata alla pagina.
+        threading.Timer(1.0, os._exit, (0,)).start()
 
     def _post(self, corpo):
         if self.path == "/api/aggiorna":

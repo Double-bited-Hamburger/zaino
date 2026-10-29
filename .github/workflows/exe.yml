@@ -1,0 +1,62 @@
+name: EXE
+
+# Costruisce zaino.exe per Windows su GitHub (strumenti/costruisci_exe.py), così non serve farlo sul PC.
+# - Release pubblicata (o avvio a mano con il tag): allega zaino.exe e zaino.exe.sha256 alla Release.
+#   Il nome non ha la versione: l'aggiornamento dall'app (aggiornamenti.py) cerca proprio questi due file.
+# - Pull request che toccano il programma: solo la prova che l'exe si costruisce e parte (tra gli artifact del job).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag della Release a cui allegare l'exe (per esempio 0.6.0)"
+        required: true
+  pull_request:
+    paths: ["*.py", "web/**", "requirements.txt", "strumenti/costruisci_exe.py", ".github/workflows/exe.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  exe:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # per allegare l'exe alla Release
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.ref }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pyinstaller==6.22.3
+      - run: python strumenti/costruisci_exe.py
+
+      - name: Prova che parte
+        shell: bash
+        run: |
+          versione=$(python -c "import config; print(config.VERSIONE)")
+          test "$(./dist/zaino.exe --version)" = "Zaino $versione"
+          if [ -n "$TAG" ] && [ "$TAG" != "$versione" ]; then
+            echo "::error::Il tag $TAG non corrisponde a VERSIONE in config.py ($versione)."
+            exit 1
+          fi
+
+      - name: Allega alla Release
+        if: env.TAG != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/zaino.exe dist/zaino.exe.sha256 --clobber
+
+      - name: Exe della prova
+        if: env.TAG == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: zaino.exe
+          path: dist/
+          retention-days: 7
