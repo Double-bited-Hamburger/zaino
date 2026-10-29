@@ -4,6 +4,7 @@ import base64
 import hashlib
 import re
 import shutil
+import sys
 import threading
 import uuid
 from datetime import datetime
@@ -275,6 +276,21 @@ def sostituisci(nuovi, nuovi_eliminati):
         tutti = _leggi()
         tutti["profili"], tutti["eliminati"] = nuovi, nuovi_eliminati
         archivio.scrivi(_elenco_file(), tutti)
+
+
+def importa_cartella_del_programma():
+    """zaino.exe tiene i dati in %APPDATA%/Zaino: se è stato messo nella cartella di una versione da Python
+    (avvia.bat), al primo avvio porta lì profili e dati, che così non si perdono. Le password restano nel
+    portachiavi, che le ritrova con lo stesso profilo."""
+    if not config.EXE or _elenco_file().exists():
+        return False
+    accanto = Path(sys.executable).parent
+    if not (accanto / "profili" / "profili.json").exists():
+        return False
+    for nome in ("profili", "cache"):
+        if (accanto / nome).is_dir():
+            shutil.copytree(accanto / nome, CARTELLA.parent / nome, dirs_exist_ok=True)
+    return True
 
 
 def migra_vecchia_installazione():

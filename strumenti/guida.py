@@ -91,7 +91,7 @@ paragrafo("<b>Legge soltanto</b>: sul registro e su WebUntis non modifica nulla.
           "né account, pubblicità o statistiche d'uso. Prima si chiamava «Parser Compiti».")
 
 titolo("Come funziona")
-passi([("Avvio", "avvia.bat o avvia.sh apre la pagina nel browser"), ("Download", "registro e orario, con le tue credenziali"),
+passi([("Avvio", "zaino.exe (o avvia.sh) apre la pagina nel browser"), ("Download", "registro e orario, con le tue credenziali"),
        ("Estrazione", "verifiche, compiti, voti, assenze, lezioni"), ("Calcoli", "medie, carico di lavoro, ore perse"),
        ("Pagina", "le sette schede, con spunte e grafici")])
 paragrafo("Entrando in un profilo (se i dati hanno più di mezz'ora) e ogni volta che premi «Aggiorna», l'app riscarica il registro e "
@@ -100,10 +100,14 @@ paragrafo("Entrando in un profilo (se i dati hanno più di mezz'ora) e ogni volt
 
 titolo("Installazione")
 tabella(["Dove", "Come"], [
-    ["PC", "Serve Python 3.12 o successivo. Scarica il codice dalla pagina della versione su GitHub («Source code (zip)»), "
-           "scompattalo e avvia <b>avvia.bat</b> (Windows) oppure <b>./avvia.sh</b> (Linux e macOS). La prima volta prepara da solo "
-           "la sottocartella .venv con le librerie: ci vuole qualche minuto. La finestra del terminale deve restare aperta mentre "
-           "usi l'app."],
+    ["Windows", "Scarica <b>zaino.exe</b> dalle Release del progetto su GitHub e aprilo con un doppio clic: non serve Python. "
+                "La prima volta Windows può dire «Windows ha protetto il PC»: Ulteriori informazioni, poi Esegui comunque. "
+                "Quando esce una versione nuova l'app lo dice in alto e, se vuoi, si aggiorna da sola. La sua finestra deve restare "
+                "aperta mentre usi l'app."],
+    ["Linux e macOS", "Serve Python 3.12 o successivo. Scarica il codice dalla pagina della versione su GitHub («Source code (zip)»), "
+                      "scompattalo e avvia <b>./avvia.sh</b> (su Windows c'è anche <b>avvia.bat</b>). La prima volta prepara da solo "
+                      "la sottocartella .venv con le librerie: ci vuole qualche minuto. La finestra del terminale deve restare aperta "
+                      "mentre usi l'app."],
     ["Telefono", "Scarica l'APK dalle Release del progetto su GitHub, aprilo e consenti l'installazione. Serve Android 7 o "
                  "successivo. Installa l'APK solo da lì: uno preso altrove potrebbe essere stato modificato."],
     ["Aggiornare", "Sul PC scarica la versione nuova in una cartella nuova e copiaci la sottocartella <b>profili</b> (e il tuo "
@@ -192,15 +196,15 @@ tabella(["Impostazione", "A cosa serve"], [
 titolo("Se qualcosa non va")
 tabella(["Problema", "Cosa fare"], [
     ["«Login rifiutato»", "Apri Profili, Modifica, e ricontrolla utente e password (per Argo anche il codice scuola)."],
-    ["La pagina non si apre", "Controlla che la finestra del terminale aperta da avvia.bat o avvia.sh sia ancora aperta; "
-                              "altrimenti riavvia. Aprire a mano 127.0.0.1:8765 non basta: serve lo script."],
+    ["La pagina non si apre", "Controlla che la finestra di zaino.exe (o del terminale di avvia.sh) sia ancora aperta; "
+                              "altrimenti riaprilo. Aprire a mano 127.0.0.1:8765 non basta: serve il programma."],
     ["«Orario non aggiornato»", "WebUntis non ha risposto: il resto funziona, riprova più tardi con «Aggiorna»."],
     ["Una verifica non compare", "Guarda tra i promemoria dell'Agenda: se è lì, aggiungi la parola usata dal professore a PAROLE_VERIFICA."],
     ["La materia è sbagliata", "Aggiungi la sigla usata dal professore ad ALIAS_MATERIE."],
     ["Il telefono non trova il PC", "App del PC aperta con la sincronizzazione attiva, stessa rete (non quella «ospiti»), "
-                                     "Python consentito dal firewall sulle reti private (porta 8766)."],
+                                     "Zaino (o Python) consentito dal firewall sulle reti private (porta 8766)."],
     ["Si vede ancora la grafica vecchia", "Ricarica la pagina con Ctrl+F5."],
-    ["«Errore interno» o registro cambiato", "I dettagli sono in cache/errori.log. Con avvia.bat --dump (./avvia.sh --dump su Linux e "
+    ["«Errore interno» o registro cambiato", "I dettagli sono in cache/errori.log. Con zaino.exe --dump o avvia.bat --dump (./avvia.sh --dump su Linux e "
                                              "macOS), da un terminale aperto nella cartella del programma, l'app stampa solo la struttura "
                                              "dei dati, senza contenuti: si può allegare a una segnalazione su GitHub."],
 ], [52, 118])

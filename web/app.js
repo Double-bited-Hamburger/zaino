@@ -1236,6 +1236,88 @@ async function mostraVista(nome) {
   disegnaProfili();
 }
 
+/* ---------- aggiornamenti ---------- */
+
+let A = null; // {disponibile, versione, nuova: {versione, pagina}, installabile, exe, automatico, controllato, errore}
+let installando = null; // la versione che si sta installando
+
+// «Più tardi» rimanda l'avviso di quella versione fino a domani.
+const chiaveRimandato = () => `aggiornamento-rimandato-${A.nuova.versione}`;
+function rimandato() {
+  try { return localStorage.getItem(chiaveRimandato()) === new Date().toISOString().slice(0, 10); } catch { return false; }
+}
+
+function bottoneAggiorna(piccolo) {
+  if (installando) return `<button type="button" class="btn${piccolo ? " small" : ""}" disabled>Aggiorno a ${esc(installando)}…</button>`;
+  return A.installabile
+    ? `<button type="button" class="btn${piccolo ? " small" : ""}" data-aggiornamento="installa">Aggiorna ora</button>`
+    : `<a class="btn${piccolo ? " small" : ""}" href="${esc(A.nuova.pagina)}" target="_blank" rel="noopener">Scarica dalla pagina delle Release</a>`;
+}
+
+// L'avviso in alto: compare solo se c'è una versione nuova; non scarica niente finché non lo chiedi.
+function disegnaAvvisoAggiornamento() {
+  const el = $("#aggiornamento");
+  const mostra = A && A.disponibile && A.nuova && (installando || !rimandato());
+  el.hidden = !mostra;
+  if (!mostra) return;
+  el.innerHTML = installando
+    ? `<span>Scarico e installo Zaino ${esc(installando)}: tra qualche secondo l'app si riapre da sola.</span>`
+    : `<span>È disponibile <strong>Zaino ${esc(A.nuova.versione)}</strong> (hai la ${esc(A.versione)}). <a href="${esc(A.nuova.pagina)}" target="_blank" rel="noopener">Cosa cambia</a></span>
+      ${bottoneAggiorna(true)}<button type="button" class="btn ghost small" data-aggiornamento="dopo">Più tardi</button>`;
+}
+
+function riquadroAggiornamenti() {
+  if (!A || !A.disponibile) return "";
+  const quando = A.controllato ? `Ultimo controllo: ${oraBreve(A.controllato)}.` : "Non ancora controllato.";
+  const stato = A.nuova ? `<p>È disponibile <strong>Zaino ${esc(A.nuova.versione)}</strong>. <a href="${esc(A.nuova.pagina)}" target="_blank" rel="noopener">Cosa cambia</a></p>`
+    : `<p>Hai l'ultima versione: <strong>Zaino ${esc(A.versione)}</strong>.</p>`;
+  return `<div class="box pad modulo"><h2>Aggiornamenti</h2>${stato}
+    <p class="muted">${A.errore ? esc(A.errore) : quando}${A.nuova && !A.exe ? " Scarica la versione nuova e mettila al posto di questa cartella: profili e dati restano." : ""}</p>
+    <label class="interruttore"><input type="checkbox" data-aggiornamento="automatico"${A.automatico ? " checked" : ""}> Controlla da solo una volta al giorno (chiede sempre prima di scaricare)</label>
+    <div class="segmenti">${A.nuova ? bottoneAggiorna(true) : ""}<button type="button" class="btn ghost small" data-aggiornamento="controlla">Controlla ora</button></div></div>`;
+}
+
+function ridisegnaAggiornamenti() {
+  disegnaAvvisoAggiornamento();
+  if (!$("#profili").hidden) { leggiModulo(); disegnaProfili(); }
+}
+
+async function comandoAggiornamento(azione, el) {
+  if (azione === "dopo") {
+    try { localStorage.setItem(chiaveRimandato(), new Date().toISOString().slice(0, 10)); } catch {}
+    return disegnaAvvisoAggiornamento();
+  }
+  if (azione === "controlla") { el.disabled = true; el.textContent = "Controllo…"; }
+  try {
+    if (azione === "installa") {
+      installando = A.nuova.versione;
+      ridisegnaAggiornamenti();
+      await api("/api/aggiornamenti", { azione });
+      return attendiVersioneNuova();
+    }
+    A = await api("/api/aggiornamenti", azione === "automatico" ? { azione, attivo: el.checked } : { azione });
+    avviso(azione === "controlla" && !A.errore && !A.nuova ? `Hai già l'ultima versione (${A.versione}).` : "");
+  } catch (errore) {
+    installando = null;
+    avviso(errore.message, true);
+  }
+  ridisegnaAggiornamenti();
+}
+
+// L'app vecchia si chiude e parte quella nuova: appena risponde, la pagina si ricarica.
+async function attendiVersioneNuova() {
+  for (let i = 0; i < 60; i++) {
+    await new Promise((fatto) => setTimeout(fatto, 1500));
+    try {
+      const stato = await api("/api/aggiornamenti");
+      if (stato.versione === installando) { location.reload(); return; }
+    } catch {}
+  }
+  installando = null;
+  avviso("L'aggiornamento non è ripartito da solo: chiudi la finestra di Zaino e riaprilo.", true);
+  ridisegnaAggiornamenti();
+}
+
 /* ---------- sincronizzazione PC ↔ telefono ---------- */
 
 const oraBreve = (iso) => { const t = new Date(iso); return `${dataBreve(iso)} alle ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`; };
@@ -1337,7 +1419,7 @@ function disegnaProfili() {
         <div class="segmenti"><button type="button" class="btn small" data-entra="${p.id}">Entra</button>
           <button type="button" class="btn ghost small" data-modifica="${p.id}">Modifica</button>
           <button type="button" class="btn ghost small" data-elimina="${p.id}">Elimina</button></div></div>`).join("")}
-      <button type="button" class="profilo nuovo" data-nuovo="1">+ Nuovo profilo</button></div>${riquadroSync()}${firma()}`;
+      <button type="button" class="profilo nuovo" data-nuovo="1">+ Nuovo profilo</button></div>${riquadroSync()}${riquadroAggiornamenti()}${firma()}`;
     return;
   }
   const m = modulo, registro = (valore, nome, nota) => `<label class="scelta${m.registro === valore ? " attiva" : ""}"><input type="radio" name="registro" value="${valore}" ${m.registro === valore ? "checked" : ""} required>
@@ -1363,7 +1445,7 @@ function disegnaProfili() {
             : '<p class="muted">Nessuna scuola trovata (oppure troppe: scrivi un nome più preciso).</p>'}`}</fieldset>
       <div class="segmenti"><button class="btn" type="submit">${m.id ? "Salva" : "Salva ed entra"}</button>
         ${P.profili.length ? '<button class="btn ghost" type="button" id="annulla-profilo">Annulla</button>' : ""}</div>
-    </form>${P.profili.length ? "" : riquadroSync() + firma()}`;
+    </form>${P.profili.length ? "" : riquadroSync() + riquadroAggiornamenti() + firma()}`;
 }
 
 // ClasseViva, account con più studenti (per esempio un genitore con due figli): l'elenco arriva dopo il primo «Aggiorna».
@@ -1459,6 +1541,7 @@ document.addEventListener("change", (e) => {
   else if (el.id === "sim-voto") { const v = parseFloat(el.value.replace(",", ".")); if (v >= 1 && v <= 10) { simVoto = v; mostra(); } }
   else if (el.name === "registro") { leggiModulo(); disegnaProfili(); }
   else if (el.dataset.cal) { calOpz[el.dataset.cal] = el.checked; aggiornaCalendario(); }
+  else if (el.dataset.aggiornamento === "automatico") comandoAggiornamento("automatico", el);
   else if (el.id === "tema") {
     temaScelto = applicaTema(el.value);
     try { localStorage.setItem("tema", temaScelto); } catch {}
@@ -1517,6 +1600,7 @@ document.addEventListener("click", (e) => {
   else if (el.dataset.togli) { simulati.splice(+el.dataset.togli, 1); mostra(); }
   else if (el.id === "apri-profili") apriProfili();
   else if (el.dataset.sync) comandoSync(el.dataset.sync);
+  else if (el.dataset.aggiornamento && el.dataset.aggiornamento !== "automatico") comandoAggiornamento(el.dataset.aggiornamento, el);
   else if (el.dataset.vista) mostraVista(el.dataset.vista);
   else if (el.dataset.entra) entra(el.dataset.entra);
   else if (el.dataset.nuovo) { modulo = nuovoModulo(null); avviso(""); disegnaProfili(); }
@@ -1578,6 +1662,8 @@ setInterval(() => {
     return;
   }
   try { S = await api("/api/sincronizzazione"); } catch {}
+  // Il controllo degli aggiornamenti non deve rallentare l'apertura: arriva quando arriva.
+  api("/api/aggiornamenti").then((stato) => { A = stato; ridisegnaAggiornamenti(); }).catch(() => {});
   comunicaTema(); // il tema può essere stato scelto prima che i widget lo sapessero leggere
   // Con un solo profilo si entra direttamente; con più profili (o nessuno) si sceglie.
   const unico = P.profili.length === 1 ? P.profili[0].id : null;

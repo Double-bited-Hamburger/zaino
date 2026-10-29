@@ -26,7 +26,7 @@ body:
     attributes:
       label: Versione
       description: In fondo alla schermata «Profili», oppure `py main.py --version`.
-      placeholder: 0.5.1
+      placeholder: 0.6.0
   - type: textarea
     id: cosa
     attributes:

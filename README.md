@@ -14,7 +14,7 @@ Argo · Nuvola · ClasseViva · WebUntis, sul PC e sul telefono. Tutto in locale
 ![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
 [![Licenza MIT](https://img.shields.io/badge/licenza-MIT-blue)](LICENSE)
 
-**[📱 Scarica per Android](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.5.1/zaino-0.5.1.apk)** &nbsp;·&nbsp; **[💻 Installa sul PC](#-installazione-sul-pc)** &nbsp;·&nbsp; **[📖 Guida (PDF)](Guida.pdf)**
+**[🪟 Scarica per Windows](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.6.0/zaino.exe)** &nbsp;·&nbsp; **[📱 Scarica per Android](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.6.0/zaino-0.6.0.apk)** &nbsp;·&nbsp; **[💻 Linux e macOS](#-installazione-sul-pc)** &nbsp;·&nbsp; **[📖 Guida (PDF)](Guida.pdf)**
 
 </div>
 
@@ -41,8 +41,9 @@ E inoltre:
 
 | | |
 | --- | --- |
-| 📱 **Android** | **[Scarica l'APK (0.5.1)](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.5.1/zaino-0.5.1.apk)**: aprilo dal telefono e consenti l'installazione. Serve Android 7 o successivo. |
-| 💻 **PC** (Windows, Linux, macOS) | Scarica il codice dalla [pagina della versione](../../releases/tag/0.5.1) («Source code (zip)») e segui [Installazione sul PC](#-installazione-sul-pc). |
+| 🪟 **Windows** | **[Scarica zaino.exe (0.6.0)](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.6.0/zaino.exe)** e aprilo con un doppio clic: non serve installare niente. Si aggiorna da solo, chiedendoti prima. |
+| 📱 **Android** | **[Scarica l'APK (0.6.0)](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.6.0/zaino-0.6.0.apk)**: aprilo dal telefono e consenti l'installazione. Serve Android 7 o successivo. |
+| 💻 **Linux e macOS** (o Windows con Python) | Scarica il codice dalla [pagina della versione](../../releases/tag/0.6.0) («Source code (zip)») e segui [Installazione sul PC](#-installazione-sul-pc). |
 
 > [!WARNING]
 > Installa l'APK solo dalle [Release](../../releases), dove ogni versione ha la sua impronta SHA-256: uno preso altrove potrebbe essere stato modificato per rubare le password.
@@ -80,9 +81,14 @@ Si collega soltanto a:
 
 ## 💻 Installazione sul PC
 
-Funziona su Windows, Linux e macOS. Serve [Python](https://www.python.org/downloads/) 3.12 o successivo.
+**Windows**: scarica **[zaino.exe](https://github.com/Double-bited-Hamburger/zaino/releases/download/0.6.0/zaino.exe)** e aprilo con un doppio clic. Non serve Python. Profili e dati stanno in `%APPDATA%\Zaino`. Quando esce una versione nuova Zaino te lo dice in alto («Aggiorna ora» / «Più tardi») e, se vuoi, si aggiorna da solo; da Profili → Aggiornamenti puoi controllare quando vuoi o spegnere il controllo.
 
-1. ⬇️ Scarica il codice dalla [pagina della versione](../../releases/tag/0.5.1) («Source code (zip)») e scompattalo in una cartella.
+> [!NOTE]
+> La prima volta Windows può mostrare «Windows ha protetto il PC», perché il programma non ha una firma a pagamento: clicca *Ulteriori informazioni* → *Esegui comunque*. L'impronta SHA-256 di ogni versione è nel file `zaino.exe.sha256` della Release.
+
+**Linux e macOS** (o Windows, se preferisci partire dal codice). Serve [Python](https://www.python.org/downloads/) 3.12 o successivo.
+
+1. ⬇️ Scarica il codice dalla [pagina della versione](../../releases/tag/0.6.0) («Source code (zip)») e scompattalo in una cartella.
 2. ▶️ Avvialo:
    - **Windows**: doppio clic su `avvia.bat`;
    - **Linux e macOS**: da un terminale aperto nella cartella, `./avvia.sh` (oppure `sh avvia.sh`).
@@ -92,7 +98,7 @@ Funziona su Windows, Linux e macOS. Serve [Python](https://www.python.org/downlo
 
 Si apre il browser con la pagina dell'app; la finestra del terminale deve restare aperta mentre la usi. Al primo avvio crei un profilo (registro, utente, password, e facoltativamente la scuola WebUntis). Puoi avere più profili, per esempio per fratelli.
 
-La pagina risponde solo al collegamento che apre lo script di avvio, che contiene un gettone segreto: gli altri programmi del computer e gli altri utenti non possono leggere i tuoi dati. Se apri a mano `http://127.0.0.1:8765` vedrai un messaggio che ti chiede di usare `avvia.bat` o `avvia.sh`.
+La pagina risponde solo al collegamento che apre lo script di avvio, che contiene un gettone segreto: gli altri programmi del computer e gli altri utenti non possono leggere i tuoi dati. Se apri a mano `http://127.0.0.1:8765` vedrai un messaggio che ti chiede di usare `zaino.exe`, `avvia.bat` o `avvia.sh`.
 
 Altre opzioni: `avvia.bat --help` oppure `./avvia.sh --help`.
 
