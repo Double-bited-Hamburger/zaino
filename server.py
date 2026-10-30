@@ -220,7 +220,8 @@ class Gestore(BaseHTTPRequestHandler):
             return self._rispondi(403, {"errore": "Accesso non consentito."})
         try:
             lunghezza = int(self.headers.get("Content-Length") or 0)
-            corpo = json.loads(self.rfile.read(min(lunghezza, 10_000)) or b"{}") if 0 <= lunghezza <= 10_000 else None
+            # 20 kB: ci sta l'orario scritto a mano più lungo (profili.MASSIMO_ORE).
+            corpo = json.loads(self.rfile.read(min(lunghezza, 20_000)) or b"{}") if 0 <= lunghezza <= 20_000 else None
         except ValueError:
             corpo = None
         if not isinstance(corpo, dict):
@@ -307,6 +308,19 @@ class Gestore(BaseHTTPRequestHandler):
                 dati.attiva(None)
             profili.elimina(corpo["id"])
             return self._rispondi(200, self._profili())
+        if self.path == "/api/orario":
+            # L'orario scritto a mano ({"ore": [...]}) o la scelta per un'ora doppia ({"chiave", "materia"}; "" = togli).
+            if not dati.PROFILO:
+                return self._rispondi(409, {"errore": "Scegli prima un profilo."})
+            try:
+                if "ore" in corpo:
+                    profilo = profili.imposta_orario(dati.PROFILO["id"], ore=corpo["ore"])
+                else:
+                    profilo = profili.imposta_orario(dati.PROFILO["id"], divisione=(corpo.get("chiave"), corpo.get("materia") or ""))
+            except profili.ProfiloNonValido as errore:
+                return self._rispondi(400, {"errore": str(errore)})
+            dati.attiva(profilo, ricorda=False)
+            return self._rispondi(200, self._pagina())
         if self.path == "/api/stato":
             if not dati.PROFILO:
                 return self._rispondi(409, {"errore": "Scegli prima un profilo."})

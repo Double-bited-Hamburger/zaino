@@ -1,4 +1,4 @@
-"""Converte l'orario grezzo di WebUntis in lezioni pronte da mostrare."""
+"""Converte l'orario grezzo di WebUntis, o quello scritto a mano nel profilo, in lezioni pronte da mostrare."""
 
 import re
 from dataclasses import dataclass, field
@@ -34,6 +34,10 @@ class Lezione:
     aule_previste: list = field(default_factory=list)
 
     chiave: str = ""  # identifica la lezione e il suo stato tra un download e l'altro
+    # Un'ora che WebUntis scrive come due materie (es. «Italiano-Storia»): il nome com'è scritto e le materie tra cui
+    # scegliere. La scelta vale per quel giorno della settimana e quell'ora (vedi chiave_divisione).
+    originale: str = ""
+    scelte: list = field(default_factory=list)
 
     @property
     def variazione(self):
@@ -94,8 +98,33 @@ def _nome_materia(nome):
     return nome
 
 
-def converti(settimane, noti=()):
-    """`settimane`: l'output di untis_client.scarica. Restituisce le lezioni in ordine di tempo."""
+def parti(materia):
+    """Le materie di un'ora che ne mette insieme due o più («ITALIANO - STORIA», «Italiano/Storia»); [] se è una sola."""
+    pezzi = [p.strip() for p in re.split(r"\s*[-/]\s*", materia or "") if p.strip()]
+    if len(pezzi) < 2 or any(len(re.sub(r"[^A-Za-zÀ-ÿ]", "", p)) < 3 for p in pezzi):
+        return []
+    return [_nome_materia(p) for p in pezzi]
+
+
+def chiave_divisione(materia, giorno, inizio):
+    """Dove si ricorda quale materia è davvero un'ora doppia: «italiano-storia|0|12:00» (0 = lunedì)."""
+    return f"{materia.strip().lower()}|{giorno}|{inizio}"
+
+
+def _dividi(materia, giorno, inizio, divisione):
+    """(materia da mostrare, nome originale, scelte possibili) per un'ora che può mettere insieme più materie."""
+    scelte = parti(materia)
+    # Prima la scelta fatta nella pagina, poi quella scritta a mano in config_locale.py (ORARIO_DIVISIONE).
+    scelta = ((divisione or {}).get(chiave_divisione(materia, giorno, inizio))
+              or config.ORARIO_DIVISIONE.get(materia.strip().lower(), {}).get((giorno, inizio)))
+    return scelta or materia, materia.strip() if scelte else "", scelte
+
+
+def converti(settimane, noti=(), divisione=None):
+    """`settimane`: l'output di untis_client.scarica. Restituisce le lezioni in ordine di tempo.
+
+    `divisione`: le ore doppie già divise dall'utente, {chiave_divisione: materia}.
+    """
     lezioni = {}
     for settimana in settimane:
         try:
@@ -112,7 +141,7 @@ def converti(settimane, noti=()):
 
         for periodo in periodi:
             try:
-                lezione = _lezione(periodo, nome)
+                lezione = _lezione(periodo, nome, divisione)
             except (TypeError, KeyError, ValueError, AttributeError):
                 continue  # una lezione illeggibile non deve nascondere tutte le altre
             if lezione:
@@ -120,7 +149,7 @@ def converti(settimane, noti=()):
     return sorted(lezioni.values(), key=lambda l: (l.data, l.inizio, l.materia))
 
 
-def _lezione(periodo, nome):
+def _lezione(periodo, nome, divisione=None):
     """La lezione di un periodo WebUntis, oppure None se è tra quelle da nascondere."""
     parti = {DOCENTE: [], MATERIA: [], AULA: []}
     previsti = {DOCENTE: [], AULA: []}
@@ -136,7 +165,7 @@ def _lezione(periodo, nome):
     giorno = str(periodo["date"])
     data = date(int(giorno[:4]), int(giorno[4:6]), int(giorno[6:8]))
     inizio = _ora(periodo["startTime"])
-    materia = config.ORARIO_DIVISIONE.get(materia.strip().lower(), {}).get((data.weekday(), inizio), materia)
+    materia, originale, scelte = _dividi(materia, data.weekday(), inizio, divisione)
     testi = [t.strip() for t in (periodo.get("substText"), periodo.get("periodText")) if isinstance(t, str) and t.strip()]
     return Lezione(
         data=data,
@@ -149,11 +178,44 @@ def _lezione(periodo, nome):
         nota=" · ".join(dict.fromkeys(testi)),
         docenti_previsti=previsti[DOCENTE],
         aule_previste=previsti[AULA],
+        originale=originale,
+        scelte=scelte,
         chiave="|".join(
             [str(periodo.get("id")), str(periodo.get("cellState"))]
             + sorted(f"{e['type']}:{e['id']}" for e in periodo.get("elements") or [])
         ),
     )
+
+
+def manuali(ore, oggi, divisione=None):
+    """Le lezioni di questa settimana e della prossima dall'orario scritto a mano nel profilo (profili.imposta_orario).
+
+    `ore`: [{giorno (0 = lunedì), inizio, fine, materia, aula, docente}], ogni settimana uguale.
+    """
+    lunedi = oggi - timedelta(days=oggi.weekday())
+    if oggi.weekday() == 6:  # di domenica interessa già la settimana che inizia
+        lunedi += timedelta(days=7)
+    lezioni = []
+    for settimana in range(2):
+        for ora in ore:
+            data = lunedi + timedelta(days=7 * settimana + ora["giorno"])
+            materia, originale, scelte = _dividi(ora["materia"], ora["giorno"], ora["inizio"], divisione)
+            lezioni.append(Lezione(
+                data=data, inizio=ora["inizio"], fine=ora["fine"], materia=_nome_materia(materia),
+                docenti=[ora["docente"]] if ora.get("docente") else [], aule=[ora["aula"]] if ora.get("aula") else [],
+                originale=originale, scelte=scelte, chiave=f"manuale|{data.isoformat()}|{ora['inizio']}|{ora['materia']}",
+            ))
+    return sorted(lezioni, key=lambda l: (l.data, l.inizio, l.materia))
+
+
+def ore_settimanali(lezioni):
+    """Quante ore di lezione ha una settimana piena: la settimana con più ore tra quelle in orario (None se non si sa)."""
+    per_settimana = {}
+    for l in lezioni:
+        if l.stato != "aggiuntiva":
+            per_settimana.setdefault(l.data - timedelta(days=l.data.weekday()), set()).add((l.data, l.inizio))
+    piu_piena = max((len(ore) for ore in per_settimana.values()), default=0)
+    return piu_piena if piu_piena >= 10 else None  # meno di così è una settimana di vacanza o un orario a metà
 
 
 def per_settimana(lezioni):

@@ -219,6 +219,15 @@ h3 { font-size: 15px; margin: 0 0 2px; }
 
 .avviso { margin-top: 16px; padding: 10px 14px; border-radius: var(--r); background: var(--warn-bg); color: var(--warn); }
 .avviso.errore { background: var(--bad-bg); color: var(--bad); }
+/* Orario scritto a mano e scelta delle ore doppie (scheda Orario). */
+.editor-giorni { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+.giorno-editor h3 { margin: 0 0 10px; }
+.riga-ora { display: grid; grid-template-columns: 88px 88px 1fr; gap: 6px 8px; align-items: end; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.riga-ora label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); min-width: 0; }
+.riga-ora input { font: inherit; font-size: 14px; padding: 6px 8px; border-radius: var(--r); border: 1px solid var(--line); background: var(--card); color: var(--text); width: 100%; min-width: 0; }
+.riga-ora button { justify-self: start; align-self: center; }
+.giorno-editor .segmenti { margin-top: 10px; }
+.dividi { margin-top: 8px; display: grid; gap: 6px; font-size: 13px; }
 .nuova-versione { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--accent-soft); color: var(--text); }
 .nuova-versione > span { flex: 1; min-width: 200px; }
 .modulo label.interruttore { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: 14px; }

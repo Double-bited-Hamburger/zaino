@@ -138,19 +138,28 @@ def scarica_orario(oggi=None):
     return dati
 
 
-def lezioni_orario(dashboard):
-    """(lezioni, dati grezzi) dell'ultimo orario scaricato; ([], None) se non c'è."""
-    grezzo = carica_orario()
-    if not grezzo:
-        return [], None
-    return orario.converti(grezzo["settimane"], orario.docenti_noti(dashboard)), grezzo
+def _personale():
+    personale = (PROFILO or {}).get("orario_personale")
+    return personale if isinstance(personale, dict) else {}
 
 
-def _orario(dashboard):
-    lezioni, grezzo = lezioni_orario(dashboard)
+def lezioni_orario(dashboard, oggi=None):
+    """(lezioni, dati grezzi) dell'orario: l'ultimo scaricato da WebUntis o, senza WebUntis, quello scritto a mano
+    nel profilo (grezzo con fonte «manuale»). ([], None) se non c'è nessuno dei due."""
+    divisione = _personale().get("divisione") or {}
+    grezzo = carica_orario() if (PROFILO or {}).get("untis") else None
+    if grezzo:
+        return orario.converti(grezzo["settimane"], orario.docenti_noti(dashboard), divisione), {**grezzo, "fonte": "untis"}
+    if _personale().get("ore"):
+        return orario.manuali(_personale()["ore"], oggi or date.today(), divisione), {"fonte": "manuale", "scaricato": None, "viste": {}}
+    return [], None
+
+
+def _orario(dashboard, lezioni, grezzo):
     if not grezzo:
         return None
     return {
+        "fonte": grezzo["fonte"],
         "scaricato": grezzo.get("scaricato"),
         "settimane": orario.per_settimana(lezioni),
         "lezioni": [
@@ -248,6 +257,7 @@ def elabora(dati, oggi=None):
     voti = estrai.voti(dashboard, scartate=scartate)
     eventi = estrai.assenze(dashboard, scartate=scartate)
     lezioni = estrai.lezioni(dashboard)
+    lezioni_settimana, grezzo_orario = lezioni_orario(dashboard, oggi)
     statistiche = stats.per_materia(voti)
     carico = stats.carico(compiti, promemoria, oggi)
     futuri = [p for p in promemoria if p.data >= oggi]
@@ -292,8 +302,8 @@ def elabora(dati, oggi=None):
             "voti_per_periodo": stats.per_periodo(voti, _periodi(dashboard)),
             "consigli": stats.consigli(statistiche, [p for p in futuri if p.verifica], materie, carico, oggi),
             "carico": carico,
-            "assenze": stats.assenze(eventi, lezioni),
-            "orario": _orario(dashboard),
+            "assenze": stats.assenze(eventi, lezioni, orario.ore_settimanali(lezioni_settimana)),
+            "orario": _orario(dashboard, lezioni_settimana, grezzo_orario),
             "scartate": dict(Counter(scartate)),
         }
     )

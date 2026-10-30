@@ -1,5 +1,11 @@
 # Novità
 
+## Prossima versione
+
+- **Il tuo orario, anche senza WebUntis**: se il profilo non ha WebUntis, dalla scheda «Orario» puoi scrivere le ore della settimana a mano, con «Scrivi il tuo orario». Si aggiunge un'ora alla volta oppure si copia un giorno su quello dopo; poi l'orario si cambia con «Modifica l'orario». Sta nel profilo, quindi passa anche al telefono con la sincronizzazione.
+- **Ore doppie**: quando WebUntis scrive un'ora come «Italiano-Storia», toccala nella scheda «Orario» e scegli quale materia è. La scelta vale per quel giorno della settimana e quell'ora, tutte le settimane. Se invece vuoi lasciarla com'è, c'è «Tutte e due».
+- **Limite di assenze sull'orario vero**: il 25% ora si calcola sulle ore settimanali del tuo orario, di WebUntis o scritto a mano, e la scheda «Assenze» lo dice. Senza orario resta la stima di 32 ore di `config.py`.
+
 ## 0.6.0
 
 - **Zaino per Windows è un programma vero**: nelle Release c'è `zaino.exe`, da scaricare e aprire con un doppio clic. Non serve installare Python. Profili e dati stanno in `%APPDATA%\Zaino`; se metti `zaino.exe` nella cartella di una versione precedente, al primo avvio li porta lì da solo. La prima volta Windows può dire «Windows ha protetto il PC»: *Ulteriori informazioni → Esegui comunque* (il programma non ha una firma a pagamento).

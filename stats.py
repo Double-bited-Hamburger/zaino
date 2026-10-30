@@ -176,8 +176,13 @@ def carico(compiti, promemoria, oggi):
     }
 
 
-def assenze(eventi, lezioni):
-    """Giorni e ore persi. `lezioni`: le ore firmate sul registro, per contare quelle saltate."""
+def assenze(eventi, lezioni, ore_settimanali=None):
+    """Giorni e ore persi. `lezioni`: le ore firmate sul registro, per contare quelle saltate.
+
+    `ore_settimanali`: quante ore ha la settimana di questa classe, dall'orario (orario.ore_settimanali); senza orario
+    vale ORE_SETTIMANALI di config.py. Servono per il limite del 25% e per la previsione a fine anno.
+    """
+    settimanali = ore_settimanali or config.ORE_SETTIMANALI
     ore_giorno = {}
     for lezione in lezioni:
         ore_giorno.setdefault(lezione.data, {})[lezione.ora] = lezione.materia
@@ -199,7 +204,7 @@ def assenze(eventi, lezioni):
 
     ore_perse = sum(e["ore"] or 0 for e in dettaglio)
     ore_svolte = sum(len(ore) for ore in ore_giorno.values())
-    limite = config.ORE_SETTIMANALI * config.SETTIMANE_SCUOLA * config.LIMITE_ASSENZE
+    limite = settimanali * config.SETTIMANE_SCUOLA * config.LIMITE_ASSENZE
     return {
         "eventi": dettaglio,
         "giorni_assenza": sum(e.tipo == "assenza" for e in eventi),
@@ -211,10 +216,12 @@ def assenze(eventi, lezioni):
         "ore_svolte": ore_svolte,
         "percentuale": ore_perse / ore_svolte * 100 if ore_svolte else None,
         "limite_ore": round(limite),
+        "ore_settimanali": settimanali,
+        "ore_dall_orario": bool(ore_settimanali),
         "ore_rimaste": round(limite) - ore_perse,
         # Per la scheda: quanti giorni di scuola valgono le ore rimaste, e dove si arriva a fine anno a questo ritmo.
         "ore_al_giorno": ore_svolte / len(ore_giorno) if ore_giorno else None,
-        "previsione": round(ore_perse / ore_svolte * config.ORE_SETTIMANALI * config.SETTIMANE_SCUOLA) if ore_svolte else None,
+        "previsione": round(ore_perse / ore_svolte * settimanali * config.SETTIMANE_SCUOLA) if ore_svolte else None,
         "per_mese": [{"mese": m, "ore": o} for m, o in sorted(mesi.items())],
         "per_materia": [{"materia": m, "ore": o} for m, o in materie.most_common()],
     }

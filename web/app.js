@@ -14,6 +14,7 @@ let ricerca = ""; // testo cercato nella scheda Compiti
 let nascondiFatti = false;
 let settimanaOrario = 0;
 let oraOrario = null; // la casella scelta nella griglia dell'orario, «data|inizio» (null = l'ora in corso)
+let editorOrario = null; // le righe dell'orario scritto a mano mentre lo modifichi; null = si vede la griglia
 let materiaGrafico = "";
 let simMateria = "";
 let simulati = []; // voti ipotetici: {materia, voto}
@@ -333,10 +334,103 @@ function cartaVariazione(l) {
     <div class="muted">${[grave ? "" : esc(chi), dettagliVariazione(l)].filter(Boolean).join(" · ")}</div></div></li>`;
 }
 
+/* ---------- orario scritto a mano ---------- */
+
+const GIORNI_SCUOLA = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+const oreScritte = () => ((D.profilo && D.profilo.orario_personale) || {}).ore || [];
+const hhmm =(m) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const ORA_VALIDA = /^\d\d:\d\d$/;
+
+function apriEditorOrario() {
+  editorOrario = oreScritte().map((o) => ({ ...o }));
+  if (!editorOrario.length) editorOrario = [{ giorno: 0, inizio: "08:00", fine: "09:00", materia: "", aula: "", docente: "" }];
+  mostra();
+}
+
+// Copia nelle righe ciò che è scritto nei campi, così ridisegnare (aggiungere un'ora, ruotare il telefono) non perde nulla.
+function leggiEditorOrario() {
+  document.querySelectorAll("#editor-orario [data-riga]").forEach((riga) => {
+    const ora = editorOrario[+riga.dataset.riga];
+    if (ora) riga.querySelectorAll("[data-campo]").forEach((campo) => { ora[campo.dataset.campo] = campo.value.trim(); });
+  });
+}
+
+function aggiungiOra(giorno) {
+  leggiEditorOrario();
+  const suoi = editorOrario.filter((o) => o.giorno === giorno && ORA_VALIDA.test(o.fine)).sort((a, b) => a.fine.localeCompare(b.fine));
+  const ultima = suoi[suoi.length - 1];
+  // La nuova ora parte quando finisce l'ultima e dura come lei (60 minuti se il giorno è vuoto).
+  const durata = ultima && ORA_VALIDA.test(ultima.inizio) ? Math.max(30, minuti(ultima.fine) - minuti(ultima.inizio)) : 60;
+  const inizio = ultima ? ultima.fine : "08:00";
+  editorOrario.push({ giorno, inizio, fine: hhmm(minuti(inizio) + durata), materia: "", aula: "", docente: "" });
+  mostra();
+  const nuove = document.querySelectorAll(`#editor-orario [data-giorno-righe="${giorno}"] [data-campo="materia"]`);
+  if (nuove.length) nuove[nuove.length - 1].focus();
+}
+
+// Lo stesso giorno su un altro: comodo quando due giorni hanno le stesse ore (le materie si cambiano dopo).
+function copiaGiorno(da, a) {
+  leggiEditorOrario();
+  editorOrario = editorOrario.filter((o) => o.giorno !== a).concat(editorOrario.filter((o) => o.giorno === da).map((o) => ({ ...o, giorno: a })));
+  mostra();
+}
+
+async function salvaOrario(ore) {
+  try {
+    const pagina = await api("/api/orario", { ore });
+    editorOrario = null;
+    avviso("");
+    applica(pagina);
+  } catch (errore) { avviso(errore.message, true); }
+}
+
+function vistaEditorOrario() {
+  if ($("#editor-orario")) leggiEditorOrario();
+  const materie = [...new Set([...(D.materie || []), ...editorOrario.map((o) => o.materia)].filter(Boolean))].sort();
+  const giorno = (g) => {
+    const righe = editorOrario.map((o, i) => [o, i]).filter(([o]) => o.giorno === g).sort(([a], [b]) => a.inizio.localeCompare(b.inizio));
+    return `<div class="box pad giorno-editor" data-giorno-righe="${g}"><h3>${GIORNI_SCUOLA[g]}</h3>
+      ${righe.length ? righe.map(([o, i]) => `<div class="riga-ora" data-riga="${i}">
+        <label><span>Dalle</span><input data-campo="inizio" type="time" value="${esc(o.inizio)}" required></label>
+        <label><span>Alle</span><input data-campo="fine" type="time" value="${esc(o.fine)}" required></label>
+        <label><span>Materia</span><input data-campo="materia" list="materie-orario" value="${esc(o.materia)}" placeholder="Es. Matematica" maxlength="60"></label>
+        <label><span>Aula</span><input data-campo="aula" value="${esc(o.aula)}" maxlength="40"></label>
+        <label><span>Docente</span><input data-campo="docente" value="${esc(o.docente)}" maxlength="40"></label>
+        <button type="button" class="btn ghost small" data-togli-ora="${i}" aria-label="Togli quest'ora">Togli</button></div>`).join("") : '<p class="muted">Nessuna lezione.</p>'}
+      <div class="segmenti"><button type="button" class="btn ghost small" data-aggiungi-ora="${g}">+ Aggiungi un'ora</button>
+        ${g > 0 && editorOrario.some((o) => o.giorno === g - 1) ? `<button type="button" class="btn ghost small" data-copia-giorno="${g - 1}|${g}">Come ${GIORNI_SCUOLA[g - 1].toLowerCase()}</button>` : ""}</div></div>`;
+  };
+  return `<div id="editor-orario">
+    ${titolo("Il tuo orario", "uguale ogni settimana")}
+    <p class="sub" style="margin:0 0 12px">Scrivi le ore di ogni giorno: compariranno nella griglia, nella scheda Oggi e nel PDF. La materia si può scegliere tra quelle del registro o scrivere come vuoi.</p>
+    <datalist id="materie-orario">${materie.map((m) => `<option value="${esc(m)}">`).join("")}</datalist>
+    <div class="editor-giorni">${[0, 1, 2, 3, 4, 5].map(giorno).join("")}</div>
+    <div class="segmenti" style="margin-top:16px"><button type="button" class="btn" data-orario-azione="salva">Salva l'orario</button>
+      <button type="button" class="btn ghost" data-orario-azione="annulla">Annulla</button>
+      ${oreScritte().length ? `<button type="button" class="btn ghost" data-orario-azione="cancella">Cancella tutto l'orario</button>` : ""}</div></div>`;
+}
+
+// La scelta per un'ora che WebUntis scrive come due materie: vale per quel giorno della settimana e quell'ora.
+function sceltaDivisione(l) {
+  if (!l.scelte || !l.scelte.length) return "";
+  const chiave = `${l.originale.toLowerCase()}|${(giorno(l.data).getDay() + 6) % 7}|${l.inizio}`;
+  const attuale = (((D.profilo && D.profilo.orario_personale) || {}).divisione || {})[chiave] || "";
+  const bottone = (valore, testo) => `<button type="button" class="btn small${attuale === valore ? "" : " ghost"}" data-dividi="${esc(chiave)}" data-materia="${esc(valore)}" aria-pressed="${attuale === valore}">${esc(testo)}</button>`;
+  return `<div class="dividi"><span class="muted">Su WebUntis è «${esc(l.originale)}». Ogni ${GIORNI[giorno(l.data).getDay()]} alle ${l.inizio} è:</span>
+    <div class="segmenti">${l.scelte.map((m) => bottone(m, m)).join("")}${bottone("", "Tutte e due")}</div></div>`;
+}
+
+async function dividiOra(chiave, materia) {
+  try { applica(await api("/api/orario", { chiave, materia })); } catch (errore) { avviso(errore.message, true); }
+}
+
 function schedaOrario() {
+  if (editorOrario) return vistaEditorOrario();
   const o = D.orario;
   if (!o) return `<div class="box" style="margin-top:20px"><div class="empty">${D.profilo && !D.profilo.untis
-    ? "Questo profilo non ha l'orario WebUntis. Se la scuola lo usa, aggiungilo da Profili → Modifica."
+    ? `Questo profilo non ha l'orario WebUntis.<br>Puoi scrivere il tuo orario a mano: basta farlo una volta.
+      <div class="segmenti" style="justify-content:center;margin-top:12px"><button type="button" class="btn" data-orario-azione="apri">Scrivi il tuo orario</button></div>
+      <p class="note">Se la scuola usa WebUntis, puoi invece aggiungerlo da Profili → Modifica.</p>`
     : "Orario non ancora scaricato: premi «Aggiorna»."}</div></div>`;
   if (!o.settimane.length) return '<div class="box" style="margin-top:20px"><div class="empty">Nessuna lezione in orario per questa settimana e la prossima (vacanze?).</div></div>';
   settimanaOrario = Math.min(settimanaOrario, o.settimane.length - 1);
@@ -363,14 +457,20 @@ function schedaOrario() {
     if (!qui.length) return '<p class="cella-dettaglio vuoto muted">Tocca un\'ora per vedere aula, docente e variazioni.</p>';
     return qui.map((l) => `<div class="cella-dettaglio" style="--tinta:${tintaMateria(l.materia)}"><div>
       <strong>${esc(l.materia)}</strong>${inCorso(l) ? ' <span class="tag accento">adesso</span>' : ""}${l.variazione ? ` <span class="tag${l.stato === "annullata" || l.nuova ? " bad" : ""}">${esc(l.stato)}</span>` : ""}
-      <div class="muted">${dataLunga(l.data).replace(/^./, (c) => c.toUpperCase())} · ${l.inizio}–${l.fine}${dettagliLezione(l) ? " · " + dettagliLezione(l) : ""}${l.variazione && dettagliVariazione(l) ? " · " + dettagliVariazione(l) : ""}</div></div></div>`).join("");
+      <div class="muted">${dataLunga(l.data).replace(/^./, (c) => c.toUpperCase())} · ${l.inizio}–${l.fine}${dettagliLezione(l) ? " · " + dettagliLezione(l) : ""}${l.variazione && dettagliVariazione(l) ? " · " + dettagliVariazione(l) : ""}</div>${sceltaDivisione(l)}</div></div>`).join("");
   };
   const t = new Date(o.scaricato);
+  const manuale = o.fonte === "manuale";
+  const fonte = manuale ? "il tuo orario, scritto a mano"
+    : `orario letto da WebUntis ${quando(o.scaricato) === "oggi" ? "oggi" : "il " + dataBreve(o.scaricato)} alle ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+  const doppie = lezioni.some((l) => l.scelte && l.scelte.length);
   return `<div class="barra-azioni">
       <div class="segmenti" role="group" aria-label="Settimana">${o.settimane.map((x, i) => `<button type="button" class="btn small${i === settimanaOrario ? "" : " ghost"}" data-settimana="${i}">${i === 0 ? "Questa settimana" : i === 1 ? "Prossima" : "Dal " + dataBreve(x.inizio)}</button>`).join("")}</div>
-      <a class="btn ghost small" href="/api/pdf?settimana=${settimanaOrario}" target="_blank" rel="noopener">Scarica PDF</a>
+      <div class="segmenti">${manuale ? `<button type="button" class="btn ghost small" data-orario-azione="apri">Modifica l'orario</button>` : ""}
+        <a class="btn ghost small" href="/api/pdf?settimana=${settimanaOrario}" target="_blank" rel="noopener">Scarica PDF</a></div>
     </div>
-    <p class="sub" style="margin:0 0 12px">Dal ${dataBreve(s.inizio)} al ${dataBreve(s.fine)} · ${variazioni.length ? plurale(variazioni.length, "variazione", "variazioni") : "nessuna variazione"} · orario letto da WebUntis ${quando(o.scaricato) === "oggi" ? "oggi" : "il " + dataBreve(o.scaricato)} alle ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}</p>
+    <p class="sub" style="margin:0 0 12px">Dal ${dataBreve(s.inizio)} al ${dataBreve(s.fine)}${manuale ? "" : ` · ${variazioni.length ? plurale(variazioni.length, "variazione", "variazioni") : "nessuna variazione"}`} · ${fonte}</p>
+    ${doppie ? `<p class="note" style="margin:-4px 0 12px">Alcune ore mettono insieme due materie: tocca l'ora e scegli quale è davvero, così la griglia, la scheda Oggi e il PDF tornano giusti.</p>` : ""}
     <div class="orario-layout"><div>
       ${titolo("La settimana", "tocca un'ora per i dettagli")}
       <div class="box pad"><div class="griglia-orario" style="--giorni:${s.giorni.length}">
@@ -380,8 +480,9 @@ function schedaOrario() {
       ${dettaglio()}
       <div class="legenda-orario"><span class="l-ora">adesso</span><span class="l-var">variazione</span><span class="l-ann">annullata</span></div></div>
     </div><div>
+      ${manuale ? `${titolo("Variazioni")}<div class="box"><div class="empty">L'orario scritto a mano non ha supplenze né ore annullate: quelle arrivano solo da WebUntis.</div></div>` : `
       ${titolo("Cosa cambia", variazioni.length ? plurale(variazioni.length, "variazione", "variazioni") : "")}
-      ${variazioni.length ? `<ul class="cambi">${variazioni.map(cartaVariazione).join("")}</ul>` : '<div class="box"><div class="empty">Nessuna variazione questa settimana.</div></div>'}
+      ${variazioni.length ? `<ul class="cambi">${variazioni.map(cartaVariazione).join("")}</ul>` : '<div class="box"><div class="empty">Nessuna variazione questa settimana.</div></div>'}`}
       <p class="note">Le lezioni in parallelo che non ti riguardano si nascondono da config.py (ORARIO_NASCONDI). Un docente indicato con una sigla è un supplente che non compare nel tuo registro.</p>
     </div></div>`;
 }
@@ -858,7 +959,7 @@ function schedaAssenze() {
       <div class="limite-conto"><b>${a.ore_perse} / ${a.limite_ore}</b><span class="muted">ore perse · ${Math.round(quota * 100)}%</span></div></div>
     ${tacche}<div class="limite-scala"><span>inizio anno</span><span><span class="bad">rosso dall'80%</span> · ${a.limite_ore} h</span></div>
     ${previsione}
-    <p class="note">Il limite è il 25% del monte ore annuale, stimato in 32 ore per 33 settimane: puoi cambiare la stima in config.py. Finora sono state svolte ${a.ore_svolte} ore di lezione${a.percentuale == null ? "" : `: ne hai perse il ${num(a.percentuale)}%`}.
+    <p class="note">Il limite è il 25% del monte ore annuale, ${a.ore_dall_orario ? `calcolato sulle ${a.ore_settimanali} ore settimanali del tuo orario per 33 settimane` : "stimato in 32 ore per 33 settimane: puoi cambiare la stima in config.py"}. Finora sono state svolte ${a.ore_svolte} ore di lezione${a.percentuale == null ? "" : `: ne hai perse il ${num(a.percentuale)}%`}.
     ${a.eventi_senza_ore ? ` Per ${plurale(a.eventi_senza_ore, "evento", "eventi")} le ore non si possono ricavare dal registro e non sono contate.` : ""}</p></div>`;
   const recenti = a.eventi.slice().reverse();
   const daGiust = recenti.filter((e) => e.da_giustificare);
@@ -1574,6 +1675,14 @@ document.addEventListener("click", (e) => {
   else if (el.id === "aggiorna") aggiorna();
   else if (el.dataset.settimana) { settimanaOrario = +el.dataset.settimana; oraOrario = null; mostra(); }
   else if (el.dataset.cella) { oraOrario = el.dataset.cella; mostra(); }
+  else if (el.dataset.dividi !== undefined) dividiOra(el.dataset.dividi, el.dataset.materia);
+  else if (el.dataset.aggiungiOra) aggiungiOra(+el.dataset.aggiungiOra);
+  else if (el.dataset.togliOra) { leggiEditorOrario(); editorOrario.splice(+el.dataset.togliOra, 1); mostra(); }
+  else if (el.dataset.copiaGiorno) { const [da, a] = el.dataset.copiaGiorno.split("|").map(Number); copiaGiorno(da, a); }
+  else if (el.dataset.orarioAzione === "apri") apriEditorOrario();
+  else if (el.dataset.orarioAzione === "annulla") { editorOrario = null; avviso(""); mostra(); }
+  else if (el.dataset.orarioAzione === "salva") { leggiEditorOrario(); salvaOrario(editorOrario.filter((o) => o.materia)); }
+  else if (el.dataset.orarioAzione === "cancella") { if (confirm("Cancellare tutto l'orario scritto a mano?")) salvaOrario([]); }
   else if (el.dataset.sim) {
     const daFuori = !el.closest("#simulatore"); // dalle schede o da «Cosa fare»: si scende fino al simulatore
     simMateria = el.dataset.sim; simVoto = null; mostra();

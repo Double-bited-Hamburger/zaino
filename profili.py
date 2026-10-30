@@ -245,6 +245,8 @@ def salva(dati, id_profilo=None):
                 (cartella(id_profilo) / "dashboard.json").unlink(missing_ok=True)
             else:
                 nuovo["dati_dal"] = vecchio.get("dati_dal", "")
+            if vecchio.get("orario_personale"):
+                nuovo["orario_personale"] = vecchio["orario_personale"]  # si cambia da imposta_orario, non dal modulo del profilo
             if vecchio.get("untis") != nuovo["untis"]:
                 (cartella(id_profilo) / "orario.json").unlink(missing_ok=True)
             else:
@@ -254,6 +256,66 @@ def salva(dati, id_profilo=None):
     if nuova_password:
         imposta_password(nuovo["id"], nuova_password)
     return nuovo
+
+
+_ORA = re.compile(r"([01]\d|2[0-3]):[0-5]\d")
+MASSIMO_ORE = 80  # sei giorni da tredici ore abbondano
+MASSIMO_DIVISIONI = 200
+
+
+def _ore(valore):
+    """Le ore dell'orario scritto a mano, controllate: [{giorno, inizio, fine, materia, aula, docente}] in ordine."""
+    if not isinstance(valore, list) or len(valore) > MASSIMO_ORE:
+        raise ProfiloNonValido(f"L'orario può avere al massimo {MASSIMO_ORE} ore.")
+    ore = []
+    for ora in valore:
+        if not isinstance(ora, dict):
+            raise ProfiloNonValido("Ora non valida.")
+        giorno, inizio, fine = ora.get("giorno"), _testo(ora.get("inizio"), 5), _testo(ora.get("fine"), 5)
+        materia = _testo(ora.get("materia"), 60)
+        if not materia:
+            continue  # una riga lasciata vuota nel modulo
+        if not isinstance(giorno, int) or isinstance(giorno, bool) or not 0 <= giorno <= 5:
+            raise ProfiloNonValido("Il giorno va da lunedì a sabato.")
+        if not (_ORA.fullmatch(inizio) and _ORA.fullmatch(fine)) or inizio >= fine:
+            raise ProfiloNonValido(f"{materia}: inizio e fine vanno scritti come 08:00 e 09:00, con la fine dopo l'inizio.")
+        ore.append({"giorno": giorno, "inizio": inizio, "fine": fine, "materia": materia,
+                    "aula": _testo(ora.get("aula"), 40), "docente": _testo(ora.get("docente"), 40)})
+    ore.sort(key=lambda o: (o["giorno"], o["inizio"]))
+    if any((a["giorno"], a["inizio"]) == (b["giorno"], b["inizio"]) for a, b in zip(ore, ore[1:])):
+        raise ProfiloNonValido("Due ore iniziano nello stesso giorno alla stessa ora.")
+    return ore
+
+
+def imposta_orario(id_profilo, ore=None, divisione=None):
+    """Cambia l'orario scritto a mano (ore) o la scelta per un'ora doppia (divisione: (chiave, materia), "" = togli).
+
+    Sta nel profilo: così passa anche al telefono con la sincronizzazione.
+    """
+    with _blocco:
+        tutti = _leggi()
+        profilo = next((p for p in tutti["profili"] if p["id"] == id_profilo), None)
+        if profilo is None:
+            raise ProfiloNonValido("Profilo non trovato.")
+        personale = dict(profilo.get("orario_personale") or {})
+        if ore is not None:
+            personale["ore"] = _ore(ore)
+        if divisione is not None:
+            chiave, scelta = divisione
+            if not isinstance(chiave, str) or not 0 < len(chiave) <= 140 or not isinstance(scelta, str):
+                raise ProfiloNonValido("Scelta non valida.")
+            scelte = dict(personale.get("divisione") or {})
+            if scelta.strip():
+                scelte[chiave] = _testo(scelta, 60)
+            else:
+                scelte.pop(chiave, None)
+            if len(scelte) > MASSIMO_DIVISIONI:
+                raise ProfiloNonValido("Troppe ore divise.")
+            personale["divisione"] = scelte
+        profilo["orario_personale"] = {k: v for k, v in personale.items() if v}
+        profilo["modificato"] = adesso()
+        archivio.scrivi(_elenco_file(), tutti)
+        return profilo
 
 
 def elimina(id_profilo):
