@@ -6,6 +6,7 @@ import json
 import secrets
 import string
 from datetime import datetime, timedelta
+from html.parser import HTMLParser
 from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 import requests
@@ -47,6 +48,22 @@ def _versione_store():
 
 def _query_param(url, name):
     return parse_qs(urlsplit(url).query).get(name, [None])[0]
+
+
+class _PaginaCompletato(HTMLParser):
+    href = None
+
+    def handle_starttag(self, tag, attrs):
+        attributi = dict(attrs)
+        if tag == "a" and "data-auth-app-redirect" in attributi:
+            self.href = attributi.get("href")
+
+
+def _link_continua(html):
+    """Il link del pulsante «Continua» della pagina «Accesso completato», che Argo mostra al posto di un redirect."""
+    pagina = _PaginaCompletato()
+    pagina.feed(html)
+    return pagina.href
 
 
 class ArgoClient:
@@ -96,10 +113,10 @@ class ArgoClient:
         )
         # I redirect vanno seguiti a mano: l'ultimo punta allo schema dell'app.
         for _ in range(8):
-            location = res.headers.get("location")
+            location = res.headers.get("location") or _link_continua(res.text)
             if not location:
                 raise ArgoError(
-                    "Login rifiutato: controlla codice scuola, utente e password nel file .env."
+                    "Login rifiutato: controlla codice scuola, utente e password del profilo."
                 )
             location = urljoin(res.url, location)
             if location.startswith(REDIRECT_URI):

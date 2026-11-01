@@ -5,6 +5,7 @@
 - **Il tuo orario, anche senza WebUntis**: se il profilo non ha WebUntis, dalla scheda «Orario» puoi scrivere le ore della settimana a mano, con «Scrivi il tuo orario». Si aggiunge un'ora alla volta oppure si copia un giorno su quello dopo; poi l'orario si cambia con «Modifica l'orario». Sta nel profilo, quindi passa anche al telefono con la sincronizzazione.
 - **Ore doppie**: quando WebUntis scrive un'ora come «Italiano-Storia», toccala nella scheda «Orario» e scegli quale materia è. La scelta vale per quel giorno della settimana e quell'ora, tutte le settimane. Se invece vuoi lasciarla com'è, c'è «Tutte e due».
 - **Limite di assenze sull'orario vero**: il 25% ora si calcola sulle ore settimanali del tuo orario, di WebUntis o scritto a mano, e la scheda «Assenze» lo dice. Senza orario resta la stima di 32 ore di `config.py`.
+- **Argo, «Login rifiutato» con le credenziali giuste**: dopo il login Argo ora mostra una pagina «Accesso completato» con il pulsante «Continua», invece di passare subito all'app. Zaino la scambiava per un rifiuto e non scaricava nulla; ora prosegue da solo.
 
 ## 0.6.0
 
