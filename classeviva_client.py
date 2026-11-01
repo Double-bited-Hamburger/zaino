@@ -10,6 +10,7 @@ alcuni prof scrivono ancora in agenda): si leggono dall'API del sito web.spaggia
 import re
 import secrets
 from datetime import date, timedelta
+from http.cookiejar import DefaultCookiePolicy
 
 import requests
 
@@ -30,6 +31,16 @@ INTESTAZIONI_SITO = {
     "Referer": f"{SITO}/home/app/default/login.php?target=atv&mode=",
     "X-Requested-With": "XMLHttpRequest",  # senza queste il firewall del sito risponde 403
 }
+# I cookie della sessione del sito (open-viva/endpoints). Si tiene un valore per nome: se il server cambia il PHPSESSID
+# all'accesso e la richiesta porta anche quello vecchio, l'API può rispondere 401.
+COOKIE_SITO = ("PHPSESSID", "webidentity", "webrole", "i18n_redirected")
+
+
+class _NessunCookie(DefaultCookiePolicy):
+    """La sessione del sito non conserva cookie da sola: li tiene il client, uno per nome."""
+
+    def set_ok(self, cookie, request):
+        return False
 
 # L'agenda (verifiche, compiti, annotazioni) si legge da un mese fa a due mesi avanti.
 GIORNI_INDIETRO = 30
@@ -119,9 +130,18 @@ class ClassevivaClient:
         except ValueError:
             return None
 
+    @staticmethod
+    def _cookie(sito, risposta):
+        """I cookie di sessione che il sito ha appena impostato prendono il posto dei vecchi."""
+        nuovi = {nome: valore for nome, valore in getattr(risposta, "cookies", {}).items() if nome in COOKIE_SITO and valore}
+        sito.biscotti.update(nuovi)
+        sito.headers["Cookie"] = "; ".join(f"{nome}={valore}" for nome, valore in sito.biscotti.items())
+
     def _accedi_sito(self, sito, azione, campi):
         """Un passo dell'accesso al sito; restituisce data.auth della risposta."""
-        risposta = sito.post(f"{SITO}/auth-p7/app/default/AuthApi4.php", params={"a": azione}, data=campi, timeout=TIMEOUT, allow_redirects=False)
+        risposta = sito.post(f"{SITO}/auth-p7/app/default/AuthApi4.php", params={"a": azione}, data=campi, timeout=TIMEOUT, allow_redirects=False,
+                            headers={"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"})  # come il browser
+        self._cookie(sito, risposta)
         try:
             dati = risposta.json()
         except ValueError:
@@ -133,6 +153,10 @@ class ClassevivaClient:
 
     def _sito(self, sito, percorso):
         risposta = sito.get(f"{SITO}/rest/w1/{percorso}", timeout=TIMEOUT, allow_redirects=False)
+        self._cookie(sito, risposta)
+        if risposta.status_code == 401:
+            # Nel messaggio il percorso senza il numero dello studente, che finirebbe nelle segnalazioni.
+            raise ClassevivaError(f"il sito ha chiuso la sessione subito dopo l'accesso (risposta 401 su {re.sub(r'[0-9]+', 'N', percorso)})")
         if risposta.status_code != 200:
             raise ClassevivaError(f"il sito ha risposto {risposta.status_code}")
         try:
@@ -144,9 +168,10 @@ class ClassevivaClient:
         """I compiti della sezione «Compiti», dall'API del sito (percorsi e campi da open-viva/endpoints)."""
         sito = requests.Session()
         sito.headers.update(INTESTAZIONI_SITO)
-        # Come fa il browser: il codice di sessione lo propone chi accede, il login lo rende valido.
-        sito.cookies.set("webrole", "gen", domain="web.spaggiari.eu")
-        sito.cookies.set("PHPSESSID", secrets.token_hex(16), domain="web.spaggiari.eu")
+        # Come fa il browser: il codice di sessione lo propone chi accede, il login lo rende valido (o ne dà uno nuovo).
+        sito.cookies.set_policy(_NessunCookie())
+        sito.biscotti = {"webrole": "gen", "PHPSESSID": secrets.token_hex(16)}
+        self._cookie(sito, None)
         auth = self._accedi_sito(sito, "aLoginPwd", {"cid": "", "uid": self.utente, "pwd": self.password, "pin": "", "target": ""})
         if not auth.get("loggedIn") and auth.get("verified") and self.ident:
             # Più account con le stesse credenziali (per esempio un genitore con due figli): lo stesso studente dell'app.
