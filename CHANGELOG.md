@@ -1,6 +1,6 @@
 # Novità
 
-## Prossima versione
+## 0.6.2
 
 Dati di accesso giusti rifiutati, o «dati non validi» che compariva a caso: le cause trovate e sistemate.
 
