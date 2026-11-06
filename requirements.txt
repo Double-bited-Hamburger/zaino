@@ -1,6 +1,6 @@
 requests==2.34.2
 python-dotenv==1.2.4
-reportlab==5.0.1
+reportlab==5.1.0
 cryptography==50.0.2
 keyring==25.7.0
 truststore==0.10.4
