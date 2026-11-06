@@ -10,7 +10,18 @@ _blocco = threading.Lock()
 
 
 class ErroreRegistro(Exception):
-    """Un problema con il registro elettronico da mostrare all'utente così com'è."""
+    """Un problema con il registro elettronico da mostrare all'utente così com'è.
+
+    temporaneo: il registro non ha risposto come doveva (sito lento, in manutenzione, pagina inattesa),
+    riprovare tra poco può bastare. Le credenziali sbagliate non lo sono mai (vedi CredenzialiRifiutate)."""
+
+    def __init__(self, messaggio, temporaneo=False):
+        super().__init__(messaggio)
+        self.temporaneo = temporaneo
+
+
+class CredenzialiRifiutate(ErroreRegistro):
+    """Il registro ha detto chiaramente che codice scuola, utente o password sono sbagliati."""
 
 
 def scrivi(percorso, contenuto):

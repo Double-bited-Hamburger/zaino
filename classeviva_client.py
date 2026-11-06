@@ -13,7 +13,7 @@ from datetime import date, timedelta
 
 import requests
 
-from archivio import ErroreRegistro
+from archivio import CredenzialiRifiutate, ErroreRegistro
 
 API = "https://web.spaggiari.eu/rest/v1"
 TIMEOUT = 30
@@ -70,13 +70,15 @@ class ClassevivaClient:
         corpo = {"uid": self.utente, "pass": self.password, **({"ident": identita} if identita else {})}
         risposta = self.session.post(f"{API}/auth/login", json=corpo, timeout=TIMEOUT, allow_redirects=False)
         if risposta.status_code in (401, 422):
-            raise ClassevivaError("Login rifiutato: controlla utente e password di ClasseViva.")
+            raise CredenzialiRifiutate("Login rifiutato: ClasseViva non ha accettato utente e password. Controlla che siano quelli con cui entri in ClasseViva.")
+        if risposta.status_code == 429:
+            raise ClassevivaError("ClasseViva ha ricevuto troppe richieste: riprova tra qualche minuto.")
         try:
             dati = risposta.json()
         except ValueError:
             dati = None
         if risposta.status_code != 200 or not isinstance(dati, dict):
-            raise ClassevivaError(f"ClasseViva non ha accettato l'accesso (risposta {risposta.status_code}).")
+            raise ClassevivaError(f"ClasseViva non ha accettato l'accesso (risposta {risposta.status_code}): riprova tra poco.", temporaneo=risposta.status_code >= 500)
         return dati
 
     def login(self):

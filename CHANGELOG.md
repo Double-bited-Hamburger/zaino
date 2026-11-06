@@ -1,5 +1,17 @@
 # Novità
 
+## Prossima versione
+
+Dati di accesso giusti rifiutati, o «dati non validi» che compariva a caso: le cause trovate e sistemate.
+
+- **I dati si provano quando salvi il profilo**: Zaino entra subito nel registro e, se i dati sono sbagliati, lo dice lì nel modulo con le parole del registro (per Argo: «Username e/o password non validi»), senza salvare. Prima il profilo si salvava comunque e l'errore arrivava solo al primo «Aggiorna». Se il registro non risponde, il profilo si salva lo stesso con un avviso; se il registro sbaglia a rifiutare c'è «Salva senza provare».
+- **«Login rifiutato» solo quando lo è davvero**: prima qualsiasi pagina inattesa di Argo (manutenzione, errore del server, troppi tentativi) diventava «controlla codice scuola, utente e password». Ora quei casi dicono «riprova tra poco», e Zaino riprova già una volta da solo. Lo stesso per Nuvola e ClasseViva.
+- **Campi scritti dal telefono**: niente maiuscola automatica né correttore su codice scuola, nome utente e password («Mario.rossi» al posto di «mario.rossi»). Il codice scuola va da solo in maiuscolo e senza spazi, e spariscono gli spazi e i caratteri invisibili che arrivano copiando e incollando. Se la password viene rifiutata e ha uno spazio di troppo alla fine, Zaino la riprova senza. Con «Mostra» si vede la password che hai scritto.
+- **Password sparite dal portachiavi**: su alcuni Linux il portachiavi accetta la password e poi non la restituisce (bloccato, o di un'altra sessione). Ora Zaino la rilegge subito e, se serve, la tiene nel file del profilo, leggibile solo dal tuo utente. Se una password manca, il messaggio dice perché: portachiavi bloccato, chiave del telefono cambiata dopo un ripristino, oppure mai salvata. `zaino.exe` ritrova il Gestione credenziali di Windows anche quando PyInstaller ne perde le tracce.
+- **Antivirus e reti delle scuole**: su Windows e macOS i certificati per le connessioni sicure si prendono dal sistema, come fa il browser (libreria `truststore`). Con un antivirus che controlla le connessioni HTTPS, o con la rete della scuola, prima il browser apriva il registro e Zaino no.
+- **`--diagnosi`**: `avvia.bat --diagnosi` (o `./avvia.sh --diagnosi`, `zaino.exe --diagnosi`) controlla cartella dei dati, portachiavi, orologio, connessione con ogni registro e accesso di ogni profilo, e per ogni problema dice cosa fare. Non mostra password né nomi utente.
+- **Prove riorganizzate** nella cartella `prove/`: girano in una cartella temporanea, senza Internet e senza il portachiavi del sistema, e i server di prova usano una porta libera qualsiasi (prima porte fisse, che su alcune macchine potevano essere occupate). 22 prove nuove sull'accesso.
+
 ## 0.6.1
 
 - **Il tuo orario, anche senza WebUntis**: se il profilo non ha WebUntis, dalla scheda «Orario» puoi scrivere le ore della settimana a mano, con «Scrivi il tuo orario». Si aggiunge un'ora alla volta oppure si copia un giorno su quello dopo; poi l'orario si cambia con «Modifica l'orario». Sta nel profilo, quindi passa anche al telefono con la sincronizzazione.

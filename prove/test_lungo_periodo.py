@@ -256,8 +256,6 @@ class LungoPeriodo(unittest.TestCase):
 class ServerLocale(unittest.TestCase):
     """Il server vero, su una porta di prova, con dati finti e senza toccare Argo o WebUntis."""
 
-    PORTA = 8799
-
     def setUp(self):
         import http.client
         import server
@@ -271,10 +269,12 @@ class ServerLocale(unittest.TestCase):
         self.addCleanup(dati.attiva, None)
         self.enterContext(mock.patch.object(profili, "_portachiavi", lambda: None))  # niente credenziali vere di Windows
         self.enterContext(mock.patch.object(server, "REGISTRO_ERRORI", cartella / "errori.log"))
-        self.enterContext(mock.patch.object(server.config, "PORTA", self.PORTA))
         self.errori = cartella / "errori.log"
         dati._scrivi(dati.CACHE, {"dashboard": anno_simulato(), "profilo": {}, "scaricato": "2027-01-10T08:00:00"})
-        self.app = server.avvia()
+        self.app = server.avvia(porta=0)  # una porta libera qualsiasi
+        self.PORTA = self.app.server_address[1]
+        self.enterContext(mock.patch.object(server.config, "PORTA", self.PORTA))
+        self.enterContext(mock.patch.object(server.config, "GETTONE", ""))
         threading.Thread(target=self.app.serve_forever, daemon=True).start()
         self.addCleanup(self.app.server_close)
         self.addCleanup(self.app.shutdown)

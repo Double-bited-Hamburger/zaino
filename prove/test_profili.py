@@ -1,26 +1,19 @@
 """Prove per i profili e per il registro Nuvola (con dati e risposte finti: nessun accesso reale)."""
 
-import http.client
 import json
-import tempfile
 import threading
 import unittest
 from datetime import date
-from pathlib import Path
 from unittest import mock
 
 import dati
 import nuvola_adatta
 import nuvola_client
-import profili
 import server
-from archivio import ErroreRegistro
-
-ARGO = {"nome": "Mario", "registro": "argo", "scuola": "SC12345", "utente": "mario.r", "password": "segreta-argo"}
-NUVOLA = {"nome": "Amico", "registro": "nuvola", "utente": "amico", "password": "segreta-nuvola",
-          "untis": {"server": "https://Scuola.WebUntis.com/", "scuola": "scuola", "classe": "3A"}}
-CLASSEVIVA = {"nome": "Rossi", "registro": "classeviva", "utente": "genitore@example.com", "password": "segreta-cv"}
-FIGLI = [{"ident": "S1234567X", "name": "MARIO ROSSI"}, {"ident": "S1111111X", "name": "LUCIA ROSSI"}]
+import profili
+from archivio import CredenzialiRifiutate, ErroreRegistro
+from prove import aiuti
+from prove.aiuti import ARGO, CLASSEVIVA, FIGLI, NUVOLA, Base
 
 def _ora(numero, *argomenti):
     return {"numeroOra": numero, "inizioOra": f"{7 + numero:02d}:00", "fineOra": f"{8 + numero:02d}:00", "giorno": "", "argomenti": list(argomenti)}
@@ -68,17 +61,6 @@ GREZZO_NUVOLA = {
 }
 
 
-class Base(unittest.TestCase):
-    def setUp(self):
-        self.cartella = Path(self.enterContext(tempfile.TemporaryDirectory()))
-        self.enterContext(mock.patch.object(profili, "CARTELLA", self.cartella / "profili"))
-        self.enterContext(mock.patch.object(profili, "BASE", self.cartella))
-        self.portachiavi = None  # None = senza Gestione credenziali: le password vanno su file
-        self.enterContext(mock.patch.object(profili, "_portachiavi", lambda: self.portachiavi))
-        self.addCleanup(dati.attiva, None)
-        dati.attiva(None)
-
-
 class Profili(Base):
     def test_crea_modifica_elimina(self):
         a, n = profili.salva(dict(ARGO)), profili.salva(dict(NUVOLA))
@@ -107,12 +89,11 @@ class Profili(Base):
 
     def test_portachiavi_di_sistema(self):
         """Con il Gestione credenziali la password non viene mai scritta su file."""
-        deposito = {}
-        self.portachiavi = mock.Mock(set_password=lambda s, u, p: deposito.__setitem__((s, u), p), get_password=lambda s, u: deposito.get((s, u)),
-                                     delete_password=lambda s, u: deposito.pop((s, u)))
+        self.portachiavi = aiuti.PortachiaviFinto()
+        deposito = self.portachiavi.deposito
         p = profili.salva(dict(ARGO))
         self.assertEqual(deposito, {("ParserCompiti", p["id"]): "segreta-argo"})
-        self.assertFalse((profili.cartella(p["id"]) / "credenziali.json").exists())
+        self.assertNotIn("segreta", (profili.cartella(p["id"]) / "credenziali.json").read_text(encoding="utf-8"))
         self.assertEqual(profili.password(p["id"]), "segreta-argo")
         profili.elimina(p["id"])
         self.assertEqual(deposito, {})
@@ -327,14 +308,7 @@ class Nuvola(Base):
         """Il percorso di accesso e di download, con un server Nuvola simulato."""
         chiamate, blocco = [], threading.Lock()
 
-        class Risposta:
-            def __init__(self, url, stato=200, dati=None, testo=""):
-                self.url, self.status_code, self._dati, self.text, self.is_redirect = url, stato, dati, testo, stato in (301, 302)
-
-            def json(self):
-                if self._dati is None:
-                    raise ValueError
-                return self._dati
+        Risposta = aiuti.Risposta
 
         def get(url, **k):
             with blocco:
@@ -368,7 +342,7 @@ class Nuvola(Base):
 
         sessione = mock.Mock(get=get, post=post, headers={})
         with mock.patch.object(nuvola_client.requests, "Session", return_value=sessione):
-            with self.assertRaisesRegex(nuvola_client.NuvolaError, "Login rifiutato"):
+            with self.assertRaisesRegex(CredenzialiRifiutate, "Login rifiutato"):
                 nuvola_client.NuvolaClient("amico", "sbagliata").login()
             client = nuvola_client.NuvolaClient("amico", "pw")
             client.login()
@@ -400,33 +374,7 @@ class Nuvola(Base):
 
 
 
-class ServerProfili(Base):
-    PORTA = 8798
-
-    def setUp(self):
-        super().setUp()
-        self.enterContext(mock.patch.object(server, "REGISTRO_ERRORI", self.cartella / "errori.log"))
-        self.enterContext(mock.patch.object(server.config, "PORTA", self.PORTA))
-        self.app = server.avvia()
-        threading.Thread(target=self.app.serve_forever, daemon=True).start()
-        self.addCleanup(self.app.server_close)
-        self.addCleanup(self.app.shutdown)
-        self.cookie = ""  # come il browser: ricorda il cookie del profilo scelto
-
-    def chiama(self, metodo, percorso, corpo=None):
-        connessione = http.client.HTTPConnection("127.0.0.1", self.PORTA, timeout=20)
-        connessione.request(metodo, percorso, body=json.dumps(corpo) if corpo is not None else None,
-                            headers={"Host": f"127.0.0.1:{self.PORTA}", "X-Parser-Compiti": "1", "Content-Type": "application/json", "Cookie": self.cookie})
-        risposta = connessione.getresponse()
-        contenuto = risposta.read()
-        for impostato in risposta.msg.get_all("Set-Cookie") or []:
-            nome, _, resto = impostato.partition("=")
-            valore = resto.split(";")[0]
-            if nome == "profilo":
-                self.cookie = f"profilo={valore}" if valore else ""
-        connessione.close()
-        return risposta.status, json.loads(contenuto)
-
+class ServerProfili(aiuti.ServerProfili):
     def test_percorso_completo(self):
         stato, elenco = self.chiama("GET", "/api/profili")
         self.assertEqual((stato, elenco["profili"], elenco["attivo"]), (200, [], None))

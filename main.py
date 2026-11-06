@@ -52,6 +52,23 @@ def dump(nome):
     print(f"\nDati grezzi salvati in {dati.CACHE}")
 
 
+def certificati_del_sistema():
+    """Su Windows e macOS i certificati di cui fidarsi si prendono dal sistema, come fa il browser.
+
+    Altrimenti, con un antivirus che controlla le connessioni HTTPS (Avast, Kaspersky, ESET…) o con la rete di una
+    scuola che fa lo stesso, il browser apre il registro ma Zaino no: «Impossibile raggiungere il registro».
+    Su Linux restano quelli di requests: alcune distribuzioni minime non hanno i certificati del sistema."""
+    if sys.platform not in ("win32", "darwin"):
+        return False
+    try:
+        import truststore
+
+        truststore.inject_into_ssl()
+        return True
+    except Exception:
+        return False
+
+
 def gettone_locale():
     """Il segreto con cui la pagina si fa riconoscere dal server (gli altri programmi del PC non lo conoscono).
 
@@ -73,16 +90,22 @@ def gettone_locale():
 def main():
     args = argparse.ArgumentParser(description=__doc__)
     args.add_argument("--dump", nargs="?", const="", metavar="PROFILO", help="scarica i dati di un profilo e mostra solo la loro struttura")
+    args.add_argument("--diagnosi", action="store_true", help="controlla portachiavi, rete, orologio e l'accesso di ogni profilo (senza mostrare password)")
     args.add_argument("--senza-browser", action="store_true", help="avvia l'app senza aprire il browser")
     args.add_argument("--version", action="version", version=f"Zaino {config.VERSIONE}")
     args.add_argument("--dopo-aggiornamento", action="store_true", help=argparse.SUPPRESS)  # lo passa la versione precedente (aggiornamenti.installa)
     opzioni = args.parse_args()
 
+    certificati_del_sistema()
     aggiornamenti.pulisci()
     profili.importa_cartella_del_programma()
     profili.migra_vecchia_installazione()
     if opzioni.dump is not None:
         return dump(opzioni.dump)
+    if opzioni.diagnosi:
+        import diagnosi
+
+        sys.exit(1 if diagnosi.esegui() else 0)
 
     if not config.GETTONE:
         config.GETTONE = gettone_locale()

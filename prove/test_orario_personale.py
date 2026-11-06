@@ -1,7 +1,5 @@
 """Prove dell'orario scritto a mano, delle ore doppie (Italiano-Storia) e del limite di assenze calcolato sull'orario."""
 
-import http.client
-import threading
 import unittest
 from datetime import date
 from unittest import mock
@@ -10,10 +8,9 @@ import config
 import dati
 import orario
 import profili
-import server
 import stats
-import test_profili
-from test_profili import ARGO, NUVOLA, Base
+from prove import aiuti
+from prove.aiuti import ARGO, NUVOLA, Base
 
 LUNEDI = date(2026, 1, 5)
 DOPPIA = "ITALIANO - STORIA"
@@ -218,20 +215,7 @@ class LimiteAssenze(unittest.TestCase):
         self.assertEqual((a["ore_settimanali"], a["ore_dall_orario"]), (config.ORE_SETTIMANALI, False))
 
 
-class ServerOrario(Base):
-    PORTA = 8799
-    chiama = test_profili.ServerProfili.chiama
-
-    def setUp(self):
-        super().setUp()
-        self.enterContext(mock.patch.object(server, "REGISTRO_ERRORI", self.cartella / "errori.log"))
-        self.enterContext(mock.patch.object(server.config, "PORTA", self.PORTA))
-        self.app = server.avvia()
-        threading.Thread(target=self.app.serve_forever, daemon=True).start()
-        self.addCleanup(self.app.server_close)
-        self.addCleanup(self.app.shutdown)
-        self.cookie = ""
-
+class ServerOrario(aiuti.ServerProfili):
     def attiva(self):
         profilo = profili.salva(dict(ARGO))
         self.chiama("POST", "/api/profili/attiva", {"id": profilo["id"]})

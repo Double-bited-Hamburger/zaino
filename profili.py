@@ -2,10 +2,13 @@
 
 import base64
 import hashlib
+import importlib
+import os
 import re
 import shutil
 import sys
 import threading
+import unicodedata
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -95,14 +98,28 @@ def annota_studenti(id_profilo, scelte):
 
 # ---------- password ----------
 
+# Il portachiavi giusto per il sistema, se keyring da solo non ne trova nessuno (può succedere in zaino.exe,
+# dove PyInstaller rischia di perdere l'elenco dei portachiavi installati).
+_PORTACHIAVI_DEL_SISTEMA = {"win32": ("keyring.backends.Windows", "WinVaultKeyring"), "darwin": ("keyring.backends.macOS", "Keyring")}
+_portachiavi_scelto = False
+
+
 def _portachiavi():
-    """Il Gestione credenziali di Windows (o equivalente), se disponibile."""
+    """Il Gestione credenziali di Windows (o il portachiavi di macOS e Linux), se disponibile."""
+    global _portachiavi_scelto
     try:
         import keyring
-
-        return keyring
     except Exception:
         return None
+    if not _portachiavi_scelto:
+        _portachiavi_scelto = True
+        try:
+            if keyring.get_keyring().priority <= 0 and sys.platform in _PORTACHIAVI_DEL_SISTEMA:
+                modulo, classe = _PORTACHIAVI_DEL_SISTEMA[sys.platform]
+                keyring.set_keyring(getattr(importlib.import_module(modulo), classe)())
+        except Exception:
+            pass
+    return keyring
 
 
 def portachiavi_disponibile():
@@ -135,31 +152,57 @@ def imposta_password(id_profilo, password):
     if portachiavi:
         try:
             portachiavi.set_password(SERVIZIO, id_profilo, password)
-            file.unlink(missing_ok=True)
-            return
+            # Si rilegge subito: certi portachiavi (bloccati, o di un'altra sessione su Linux) accettano e poi non restituiscono nulla.
+            if portachiavi.get_password(SERVIZIO, id_profilo) == password:
+                archivio.scrivi(file, {"dove": "portachiavi"})  # nel file solo dove sta, per spiegare il problema se un giorno manca
+                return
         except Exception:
             pass
-    # Senza portachiavi la password resta in un file locale della cartella del profilo.
+    # Senza portachiavi la password resta in un file della cartella del profilo, leggibile solo dal tuo utente.
     archivio.scrivi(file, {"password": password})
+    try:
+        os.chmod(file, 0o600)
+    except OSError:
+        pass
 
 
-def password(id_profilo):
+MANCANTE = "Password del registro mancante: reinseriscila modificando il profilo."
+
+
+def _leggi_password(id_profilo):
+    """(password, perché manca): il motivo spiega cosa fare, invece di un generico «dati non validi»."""
     file = archivio.leggi(cartella(id_profilo) / "credenziali.json") or {}
     cifrario = _cifrario()
     if cifrario and isinstance(file.get("cifrata"), str):
         try:
-            return cifrario.decrypt(file["cifrata"].encode()).decode()
+            return cifrario.decrypt(file["cifrata"].encode()).decode(), ""
         except Exception:
-            return ""  # chiave cambiata: la password va reinserita dal profilo
+            return "", ("La password salvata non si può più leggere: la chiave del telefono è cambiata (per esempio dopo un ripristino). "
+                        "Reinseriscila modificando il profilo, oppure sincronizza col PC.")
     portachiavi = None if cifrario else _portachiavi()
+    guasto = False
     if portachiavi:
         try:
             salvata = portachiavi.get_password(SERVIZIO, id_profilo)
             if salvata:
-                return salvata
+                return salvata, ""
         except Exception:
-            pass
-    return file.get("password") or ""
+            guasto = True
+    if isinstance(file.get("password"), str) and file["password"]:
+        return file["password"], ""
+    if file.get("dove") == "portachiavi" or guasto:
+        return "", ("La password era nel portachiavi del sistema, che ora non la restituisce (bloccato, non disponibile o di un "
+                    "altro utente del computer). Sbloccalo e riprova, oppure reinserisci la password modificando il profilo.")
+    return "", MANCANTE
+
+
+def password(id_profilo):
+    return _leggi_password(id_profilo)[0]
+
+
+def perche_manca_password(id_profilo):
+    """Il messaggio da mostrare quando password() è vuota."""
+    return _leggi_password(id_profilo)[1] or MANCANTE
 
 
 def _dimentica_password(id_profilo):
@@ -173,8 +216,33 @@ def _dimentica_password(id_profilo):
 
 # ---------- creazione, modifica, eliminazione ----------
 
-def _testo(valore, massimo=120):
-    return valore.strip()[:massimo] if isinstance(valore, str) else ""
+# Caratteri che non si vedono ma arrivano copiando e incollando (da un messaggio, una mail, un PDF).
+_INVISIBILI = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff\u00ad"), None)
+
+
+def _testo(valore, massimo=120, spazi=True):
+    """Il testo di un campo del modulo, pulito: niente caratteri invisibili né spazi ai lati (spazi=False: nessuno spazio)."""
+    if not isinstance(valore, str):
+        return ""
+    testo = unicodedata.normalize("NFC", valore).translate(_INVISIBILI).replace("\u00a0", " ")
+    if not spazi:
+        testo = "".join(testo.split())
+    return testo.strip()[:massimo]
+
+
+def codice_scuola(valore):
+    """Il codice scuola di Argo come lo vuole Argo: maiuscole e cifre, senza spazi («sc 12345» → «SC12345»)."""
+    return _testo(valore, spazi=False).upper()
+
+
+def nome_utente(registro, valore):
+    """Il nome utente pulito. Argo e ClasseViva non hanno spazi nei nomi utente: se ci sono, li ha messi la tastiera."""
+    return _testo(valore, spazi=registro == "nuvola")
+
+
+def password_pulita(valore):
+    """La password senza spazi ai lati né caratteri invisibili: si prova se quella scritta viene rifiutata (vedi dati.accedi)."""
+    return _testo(valore, massimo=500)
 
 
 def _untis(valore):
@@ -193,8 +261,14 @@ def _untis(valore):
     return {"server": server, "scuola": scuola, "classe": classe}
 
 
-def salva(dati, id_profilo=None):
-    """Crea un profilo (id_profilo None) o lo modifica. Restituisce il profilo salvato, senza password."""
+def stesso_accesso(a, b):
+    """True se i due profili entrano nello stesso account (i vecchi profili possono avere il codice scuola in minuscolo)."""
+    chiave = lambda p: (p.get("registro"), codice_scuola(p.get("scuola")), nome_utente(p.get("registro"), p.get("utente")))
+    return chiave(a) == chiave(b)
+
+
+def controlla(dati, id_profilo=None):
+    """Controlla e pulisce i dati del modulo, senza salvare: (profilo come verrebbe salvato, nuova password o "")."""
     if not isinstance(dati, dict):
         raise ProfiloNonValido("Dati del profilo non validi.")
     registro = dati.get("registro")
@@ -203,8 +277,8 @@ def salva(dati, id_profilo=None):
     nuovo = {
         "nome": _testo(dati.get("nome"), 40),
         "registro": registro,
-        "scuola": _testo(dati.get("scuola")) if registro == "argo" else "",
-        "utente": _testo(dati.get("utente")),
+        "scuola": codice_scuola(dati.get("scuola")) if registro == "argo" else "",
+        "utente": nome_utente(registro, dati.get("utente")),
         # Solo ClasseViva: quale studente mostrare se l'account ne ha più d'uno ("" = il primo).
         "studente": _testo(dati.get("studente"), 20) if registro == "classeviva" else "",
         "untis": _untis(dati.get("untis")),
@@ -219,14 +293,23 @@ def salva(dati, id_profilo=None):
     if nuovo["studente"] and not _IDENT.fullmatch(nuovo["studente"]):
         raise ProfiloNonValido("Studente non valido.")
     nuova_password = dati.get("password") if isinstance(dati.get("password"), str) else ""
+    if not password_pulita(nuova_password):
+        nuova_password = ""  # solo spazi: come lasciarla vuota
+    if id_profilo is None and not nuova_password:
+        raise ProfiloNonValido("Inserisci la password del registro.")
+    if id_profilo is not None and not trova(id_profilo):
+        raise ProfiloNonValido("Profilo non trovato.")
+    return nuovo, nuova_password
 
+
+def salva(dati, id_profilo=None):
+    """Crea un profilo (id_profilo None) o lo modifica. Restituisce il profilo salvato, senza password."""
+    nuovo, nuova_password = controlla(dati, id_profilo)
     # Da quando valgono i dati scaricati: la sincronizzazione scarta quelli più vecchi, che sono di un altro account.
     nuovo["dati_dal"] = nuovo["orario_dal"] = nuovo["modificato"]
     with _blocco:
         tutti = _leggi()
         if id_profilo is None:
-            if not nuova_password:
-                raise ProfiloNonValido("Inserisci la password del registro.")
             nuovo["id"] = uuid.uuid4().hex[:8]
             tutti["profili"].append(nuovo)
         else:
@@ -236,7 +319,7 @@ def salva(dati, id_profilo=None):
             vecchio = tutti["profili"][posizione]
             nuovo["id"] = id_profilo
             # Cambiando registro, account o studente i dati scaricati non valgono più.
-            stesso_account = (vecchio.get("registro"), vecchio.get("scuola"), vecchio.get("utente")) == (nuovo["registro"], nuovo["scuola"], nuovo["utente"])
+            stesso_account = stesso_accesso(vecchio, nuovo)
             if not stesso_account:
                 (cartella(id_profilo) / "studenti.json").unlink(missing_ok=True)
             # "" vuol dire il primo studente: sceglierlo esplicitamente non cambia i dati.

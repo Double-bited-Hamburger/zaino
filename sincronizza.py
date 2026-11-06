@@ -14,7 +14,6 @@ import ipaddress
 import json
 import re
 import secrets
-import shutil
 import socket
 import threading
 import time

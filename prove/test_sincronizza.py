@@ -13,7 +13,7 @@ import dati
 import profili
 import server
 import sincronizza
-import test_profili as base
+from prove import aiuti as base
 
 ARGO, NUVOLA = base.ARGO, base.NUVOLA
 CODICE = "ABCDEFGHIJKLMNOPQRST"
@@ -203,8 +203,6 @@ class Rete(DueDispositivi):
 
 
 class Pagina(base.ServerProfili):
-    PORTA = 8795
-
     def test_riquadro_sincronizzazione(self):
         self.enterContext(mock.patch.object(sincronizza.config, "PORTA_SYNC", 8794))
         self.addCleanup(sincronizza.ferma_ascolto)

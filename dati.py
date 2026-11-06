@@ -1,9 +1,12 @@
 """Scarica i dati del registro e li prepara per l'interfaccia."""
 
 import threading
+import time
 from collections import Counter
 from dataclasses import asdict
 from datetime import date, datetime, timedelta
+
+import requests
 
 import archivio
 import classeviva_adatta
@@ -14,7 +17,7 @@ import parser as estrai
 import profili
 import stats
 import untis_client
-from archivio import ErroreRegistro
+from archivio import CredenzialiRifiutate, ErroreRegistro
 from argo_client import ArgoClient
 from classeviva_client import ClassevivaClient
 from nuvola_client import NuvolaClient
@@ -42,16 +45,65 @@ def attiva(profilo, ricorda=True):
         profili.segna_ultimo(profilo["id"])
 
 
-def _scarica_argo(profilo, password):
-    client = ArgoClient(profilo["scuola"], profilo["utente"], password)
-    client.login()
+# Se il registro non risponde (sito lento, manutenzione, pagina inattesa) si riprova da soli dopo una breve pausa.
+TENTATIVI = 2
+PAUSA_RIPROVA = 3
+
+
+def _client(profilo, password):
+    registro = profilo.get("registro")
+    utente = profili.nome_utente(registro, profilo.get("utente"))
+    if registro == "nuvola":
+        return NuvolaClient(utente, password)
+    if registro == "classeviva":
+        return ClassevivaClient(utente, password, profilo.get("studente", ""))
+    return ArgoClient(profili.codice_scuola(profilo.get("scuola")), utente, password)
+
+
+def accedi(profilo, password):
+    """Entra nel registro del profilo e restituisce (client, password usata).
+
+    - Se il registro non risponde come dovrebbe, riprova (TENTATIVI volte in tutto).
+    - Se rifiuta la password così com'è scritta e ha spazi ai lati o caratteri invisibili (copia e incolla,
+      tastiera del telefono), la riprova pulita: chi la usa poi la salva così (vedi scarica).
+    Le credenziali sbagliate si segnalano subito, senza altri tentativi: troppi errori possono bloccare l'account.
+    """
+    pulita = profili.password_pulita(password)
+    for tentativo in range(1, TENTATIVI + 1):
+        try:
+            client = _client(profilo, password)
+            try:
+                client.login()
+            except CredenzialiRifiutate:
+                if not pulita or pulita == password:
+                    raise
+                password = pulita
+                client = _client(profilo, password)
+                client.login()
+            return client, password
+        except CredenzialiRifiutate:
+            raise
+        except ErroreRegistro as errore:
+            if not errore.temporaneo or tentativo == TENTATIVI:
+                raise
+        except (requests.ConnectionError, requests.Timeout):
+            if tentativo == TENTATIVI:
+                raise
+        time.sleep(PAUSA_RIPROVA)
+
+
+def prova_accesso(dati_profilo, password):
+    """Prova i dati di accesso scritti nel modulo, prima di salvare il profilo. Solleva gli errori di accedi()."""
+    profilo = {**dati_profilo, "studente": dati_profilo.get("studente") or ""}
+    accedi(profilo, password)
+
+
+def _scarica_argo(client):
     alunno, dashboard = client.dashboard()
     return {"profilo": alunno, "dashboard": dashboard}
 
 
-def _scarica_nuvola(profilo, password, cache, oggi=None):
-    client = NuvolaClient(profilo["utente"], password)
-    client.login()
+def _scarica_nuvola(client, cache, oggi=None):
     # Compiti e lezioni si leggono un giorno alla volta: i giorni già letti restano in cache e si accumulano.
     precedente = (_leggi(cache) or {}).get("nuvola")
     giorni = precedente.get("giorni") if isinstance(precedente, dict) and isinstance(precedente.get("giorni"), dict) else {}
@@ -61,9 +113,7 @@ def _scarica_nuvola(profilo, password, cache, oggi=None):
     return {"profilo": alunno, "dashboard": dashboard, "nuvola": grezzo}
 
 
-def _scarica_classeviva(profilo, password, cache, oggi=None):
-    client = ClassevivaClient(profilo["utente"], password, profilo.get("studente", ""))
-    client.login()
+def _scarica_classeviva(profilo, client, cache, oggi=None):
     profili.annota_studenti(profilo["id"], client.scelte)  # per la scelta dello studente nel modulo del profilo
     grezzo = client.scarica(oggi)
     if grezzo.get("compiti") is None:
@@ -83,13 +133,16 @@ def scarica():
         raise ErroreRegistro("Scegli prima un profilo.")
     password = profili.password(profilo["id"])
     if not password:
-        raise ErroreRegistro("Password del registro mancante: modificala nel profilo.")
+        raise ErroreRegistro(profili.perche_manca_password(profilo["id"]))
+    client, usata = accedi(profilo, password)
+    if usata != password:
+        profili.imposta_password(profilo["id"], usata)  # la prossima volta si entra al primo colpo
     if profilo.get("registro") == "nuvola":
-        dati = _scarica_nuvola(profilo, password, cache)
+        dati = _scarica_nuvola(client, cache)
     elif profilo.get("registro") == "classeviva":
-        dati = _scarica_classeviva(profilo, password, cache)
+        dati = _scarica_classeviva(profilo, client, cache)
     else:
-        dati = _scarica_argo(profilo, password)
+        dati = _scarica_argo(client)
     dati["scaricato"] = datetime.now().isoformat(timespec="seconds")
     _scrivi(cache, dati)
     return dati

@@ -10,6 +10,7 @@ import requests
 import classeviva_adatta
 import classeviva_client
 import dati
+from archivio import CredenzialiRifiutate
 from classeviva_client import ClassevivaClient, ClassevivaError
 
 OGGI = date(2026, 10, 8)
@@ -197,7 +198,7 @@ class Client(unittest.TestCase):
 
     def test_password_sbagliata(self):
         client, _ = self.client({"login": login_giusto}, password="no")
-        with self.assertRaisesRegex(ClassevivaError, "Login rifiutato"):
+        with self.assertRaisesRegex(CredenzialiRifiutate, "Login rifiutato"):
             client.login()
 
     @staticmethod

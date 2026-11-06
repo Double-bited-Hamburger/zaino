@@ -7,7 +7,7 @@ from datetime import date, timedelta
 
 import requests
 
-from archivio import ErroreRegistro
+from archivio import CredenzialiRifiutate, ErroreRegistro
 
 BASE = "https://nuvola.madisoft.it"
 ACCESSO = f"{BASE}/connect/authentication-service"
@@ -43,15 +43,19 @@ class NuvolaClient:
     def login(self):
         # 1. Nuvola rimanda alla pagina di accesso (Keycloak), che contiene l'indirizzo a cui inviare le credenziali.
         pagina = self.session.get(ACCESSO, timeout=TIMEOUT)
+        if getattr(pagina, "status_code", 200) >= 500:
+            raise NuvolaError(f"Nuvola non risponde in questo momento (HTTP {pagina.status_code}): riprova tra qualche minuto.", temporaneo=True)
         trovato = re.search(r'"loginAction"\s*:\s*"([^"]+)"', pagina.text) or re.search(r'<form[^>]+action="([^"]+)"', pagina.text)
         if not trovato:
-            raise NuvolaError("Pagina di accesso di Nuvola non riconosciuta: il sito potrebbe essere cambiato.")
+            raise NuvolaError("Pagina di accesso di Nuvola non riconosciuta: riprova tra poco (se succede sempre, il sito potrebbe essere cambiato).", temporaneo=True)
         azione = html.unescape(trovato.group(1).replace("\\/", "/").replace("\\u0026", "&"))
 
         # 2. Invio delle credenziali: se sono giuste si torna su Nuvola, altrimenti si resta sulla pagina di accesso.
         esito = self.session.post(azione, data={"username": self.utente, "password": self.password, "credentialId": ""}, timeout=TIMEOUT)
         if not esito.url.startswith(BASE):
-            raise NuvolaError("Login rifiutato: controlla utente e password di Nuvola.")
+            if getattr(esito, "status_code", 200) >= 500:
+                raise NuvolaError(f"Nuvola non risponde in questo momento (HTTP {esito.status_code}): riprova tra qualche minuto.", temporaneo=True)
+            raise CredenzialiRifiutate("Login rifiutato: Nuvola non ha accettato nome utente e password. Controlla che siano quelli con cui entri in Nuvola.")
 
         # 3. L'area riservata rilascia il token per le API (vale sia per gli studenti sia per i tutori).
         risposta = self.session.get(f"{API}/login-from-web", timeout=TIMEOUT, allow_redirects=False)

@@ -23,7 +23,7 @@ import pdf_settimana
 import profili
 import sincronizza
 import untis_client
-from archivio import ErroreRegistro
+from archivio import CredenzialiRifiutate, ErroreRegistro
 from untis_client import UntisError
 
 WEB = Path(config.WEB_DIR) if config.WEB_DIR else Path(__file__).parent / "web"
@@ -32,6 +32,8 @@ REGISTRO_ERRORI = (Path(config.DATI_DIR) if config.DATI_DIR else Path(__file__).
 PREFERENZE = (Path(config.DATI_DIR) if config.DATI_DIR else Path(__file__).parent) / "cache" / "preferenze.json"
 TEMI = {"auto", "chiaro", "scuro", "quaderno", "terminale", "nothing", "ultra"}
 INDIRIZZO = config.INDIRIZZO
+CONNESSIONE_SICURA = ("Connessione sicura con il registro non riuscita: controlla che data e ora del dispositivo siano giuste. "
+                      "Se il browser apre il registro e Zaino no, può essere l'antivirus che controlla le connessioni HTTPS.")
 
 # Il profilo in uso è uno solo per volta (vedi dati.attiva): le richieste si mettono in fila,
 # ognuna con il profilo scelto nel proprio cookie.
@@ -240,9 +242,58 @@ class Gestore(BaseHTTPRequestHandler):
                 return self._rispondi(400, {"errore": str(errore)})
         if self.path == "/api/aggiornamenti":
             return self._aggiornamenti(corpo)
+        if self.path == "/api/profili":
+            # La prova dei dati di accesso sta fuori da BLOCCO: il registro può metterci qualche secondo.
+            rifiuto, avviso = self._prova_profilo(corpo)
+            if rifiuto:
+                return self._rispondi(*rifiuto)
+            with BLOCCO:
+                self._scegli_profilo()
+                return self._salva_profilo(corpo, avviso)
         with BLOCCO:
             self._scegli_profilo()
             self._post(corpo)
+
+    def _prova_profilo(self, corpo):
+        """Prima di salvare, prova i dati di accesso col registro: meglio scoprire subito che la password è sbagliata
+        che dopo, al primo «Aggiorna». Restituisce (risposta di rifiuto o None, avviso o None).
+
+        Si prova solo se cambia qualcosa dell'accesso (password, registro, scuola, utente). Se il registro non risponde
+        il profilo si salva lo stesso, con un avviso; con «forza» (il pulsante «Salva senza provare») non si prova."""
+        id_profilo = corpo.get("id") if isinstance(corpo.get("id"), str) else None
+        try:
+            nuovo, nuova_password = profili.controlla(corpo.get("profilo"), id_profilo)
+        except profili.ProfiloNonValido as errore:
+            return (400, {"errore": str(errore)}), None
+        vecchio = profili.trova(id_profilo) if id_profilo else None
+        if corpo.get("forza") is True or (vecchio and not nuova_password and profili.stesso_accesso(vecchio, nuovo)):
+            return None, None
+        password = nuova_password or profili.password(id_profilo)
+        if not password:
+            return (400, {"errore": profili.perche_manca_password(id_profilo)}), None
+        try:
+            dati.prova_accesso(nuovo, password)
+        except CredenzialiRifiutate as errore:
+            return (400, {"errore": str(errore), "credenziali": True}), None
+        except ErroreRegistro as errore:
+            return None, f"Profilo salvato, ma non ho potuto provare l'accesso: {errore}"
+        except requests.exceptions.SSLError:
+            return None, f"Profilo salvato, ma non ho potuto provare l'accesso. {CONNESSIONE_SICURA}"
+        except requests.RequestException:
+            return None, "Profilo salvato, ma il registro non è raggiungibile adesso: l'accesso si proverà al primo «Aggiorna»."
+        except Exception:
+            annota_errore()
+            return None, "Profilo salvato, ma la prova dell'accesso non è riuscita per un errore imprevisto (dettagli in cache/errori.log)."
+        return None, None
+
+    def _salva_profilo(self, corpo, avviso):
+        try:
+            profilo = profili.salva(corpo.get("profilo"), corpo.get("id") if isinstance(corpo.get("id"), str) else None)
+        except profili.ProfiloNonValido as errore:
+            return self._rispondi(400, {"errore": str(errore)})
+        if dati.PROFILO and dati.PROFILO["id"] == profilo["id"]:
+            dati.attiva(profilo, ricorda=False)
+        return self._rispondi(200, {**self._profili(), "salvato": profilo["id"], "avviso": avviso})
 
     def _aggiornamenti(self, corpo):
         azione = corpo.get("azione")
@@ -281,6 +332,8 @@ class Gestore(BaseHTTPRequestHandler):
                 avviso = " ".join(filter(None, (avviso, extra))) or None  # per esempio: account con più studenti
             except ErroreRegistro as errore:
                 return self._rispondi(502, {"errore": str(errore)})
+            except requests.exceptions.SSLError:
+                return self._rispondi(502, {"errore": CONNESSIONE_SICURA})
             except requests.RequestException:
                 return self._rispondi(502, {"errore": "Impossibile raggiungere il registro: controlla la connessione."})
             return self._rispondi(200, {**self._pagina(), "avviso": avviso})
@@ -291,14 +344,6 @@ class Gestore(BaseHTTPRequestHandler):
             dati.attiva(profilo)  # lo ricorda anche come ultimo usato
             cookie = self._imposta_cookie("profilo", profilo["id"] if profilo else "", 365 * 86400 if profilo else 0)
             return self._rispondi(200, self._profili(), intestazioni=(cookie,))
-        if self.path == "/api/profili":
-            try:
-                profilo = profili.salva(corpo.get("profilo"), corpo.get("id") if isinstance(corpo.get("id"), str) else None)
-            except profili.ProfiloNonValido as errore:
-                return self._rispondi(400, {"errore": str(errore)})
-            if dati.PROFILO and dati.PROFILO["id"] == profilo["id"]:
-                dati.attiva(profilo, ricorda=False)
-            return self._rispondi(200, {**self._profili(), "salvato": profilo["id"]})
         if self.path == "/api/profili/elimina":
             try:
                 profili.cartella(corpo.get("id"))

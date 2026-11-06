@@ -290,6 +290,9 @@ tr.con-sotto td { border-bottom: 0; padding-bottom: 4px; }
 .scelta input { margin-top: 4px; accent-color: var(--accent); }
 .scelta small { display: block; color: var(--muted); font-size: 12px; }
 .riga { display: flex; gap: 8px; align-items: flex-end; }
+.campo-password { display: flex; gap: 8px; align-items: center; }
+.campo-password input { flex: 1; min-width: 0; }
+.campo-password button { flex: none; }
 .modulo .codice { font: 600 19px/1.4 ui-monospace, Consolas, monospace; letter-spacing: 1px; user-select: all; overflow-wrap: anywhere; }
 .modulo > p { margin: 0 0 10px; }
 .riga label { flex: 1; margin-bottom: 0; }

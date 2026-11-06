@@ -8,28 +8,15 @@ from pathlib import Path
 from unittest import mock
 
 import main
-import server
 import sincronizza
-import test_profili as base
+from prove import aiuti as base
 
 GETTONE = "g" * 43
 CODICE = "ABCDEFGHIJKLMNOPQRST"
 
 
-class Gettone(base.Base):
-    PORTA = 8793
-    chiama = base.ServerProfili.chiama  # (le prove di ServerProfili, senza gettone, non vanno ripetute qui)
-
-    def setUp(self):
-        super().setUp()
-        self.enterContext(mock.patch.object(server, "REGISTRO_ERRORI", self.cartella / "errori.log"))
-        self.enterContext(mock.patch.object(server.config, "PORTA", self.PORTA))
-        self.enterContext(mock.patch.object(server.config, "GETTONE", GETTONE))
-        self.app = server.avvia()
-        threading.Thread(target=self.app.serve_forever, daemon=True).start()
-        self.addCleanup(self.app.server_close)
-        self.addCleanup(self.app.shutdown)
-        self.cookie = ""
+class Gettone(base.ServerProfili):
+    GETTONE = GETTONE  # il server ora vuole il gettone
 
     def grezza(self, percorso, cookie="", host=None):
         connessione = http.client.HTTPConnection("127.0.0.1", self.PORTA, timeout=20)

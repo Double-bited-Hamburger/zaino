@@ -134,6 +134,17 @@ Tutto passa dalle [issue](../../issues/new/choose): 🐛 segnalazioni di errori,
 > **Non incollare mai password, voti o nomi** nelle issue.
 
 <details>
+<summary><b>🩺 L'app rifiuta i miei dati, ma sono giusti</b></summary>
+
+Quando salvi un profilo, Zaino prova subito i dati con il registro e ti dice cosa non va. Se non basta, dal terminale aperto nella cartella del programma:
+- **Windows**: `avvia.bat --diagnosi` (oppure `zaino.exe --diagnosi`);
+- **Linux e macOS**: `./avvia.sh --diagnosi`.
+
+Controlla una cosa alla volta (cartella dei dati, portachiavi delle password, orologio, connessione con ogni registro, accesso di ogni profilo) e per ogni problema dice cosa fare. Non mostra password, e copre nomi, scuola e nome utente: il risultato si può incollare in una issue.
+
+</details>
+
+<details>
 <summary><b>🧩 Allegare la struttura dei dati</b> (per ClasseViva o un registro nuovo)</summary>
 
 L'app può scaricare i dati del profilo e stamparne **solo la struttura** (nomi dei campi e tipi, nessun contenuto). Si fa sul PC, da un terminale aperto nella cartella del programma:
@@ -152,6 +163,8 @@ Con più profili aggiungi il nome, per esempio `avvia.bat --dump Mario`; senza n
 py -m unittest
 ```
 
+Le prove stanno in `prove/` (una prova sola: `py -m unittest prove.test_accesso`). Girano in una cartella temporanea, senza Internet e senza il portachiavi del sistema: non toccano i tuoi profili, il `.env` o le password salvate. Una prova che prova a collegarsi a un sito vero fallisce.
+
 | File | Cosa fa |
 | --- | --- |
 | `main.py` | avvia l'app |
@@ -160,6 +173,8 @@ py -m unittest
 | `nuvola_adatta.py`, `classeviva_adatta.py` | portano i dati di Nuvola e ClasseViva nella forma di quelli di Argo |
 | `parser.py`, `stats.py` | estrazione e calcoli |
 | `sincronizza.py` | lo scambio con il telefono |
+| `diagnosi.py` | il controllo di `--diagnosi` |
+| `prove/` | le prove (`aiuti.py`: profili finti, cartella pulita, server su una porta libera) |
 | `web/`, `android/` | la pagina e l'app Android |
 | `strumenti/guida.py` | rigenera `Guida.pdf` (serve ReportLab) |
 

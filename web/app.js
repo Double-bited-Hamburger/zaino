@@ -65,7 +65,7 @@ async function api(percorso, corpo) {
   };
   const risposta = await fetch(percorso, opzioni);
   const json = await risposta.json();
-  if (!risposta.ok) throw new Error(json.errore || "Errore imprevisto.");
+  if (!risposta.ok) throw Object.assign(new Error(json.errore || "Errore imprevisto."), { credenziali: !!json.credenziali });
   return json;
 }
 
@@ -1339,6 +1339,9 @@ async function mostraVista(nome) {
 
 /* ---------- aggiornamenti ---------- */
 
+// Niente maiuscola automatica né correttore nei dati di accesso: sul telefono cambierebbero «mario.rossi» in «Mario.rossi».
+const SENZA_CORRETTORE = 'autocorrect="off" spellcheck="false" autocomplete="off"';
+
 let A = null; // {disponibile, versione, nuova: {versione, pagina}, installabile, exe, automatico, controllato, errore}
 let installando = null; // la versione che si sta installando
 
@@ -1532,10 +1535,12 @@ function disegnaProfili() {
         <div class="scelte">${registro("argo", "Argo didUP", "portaleargo.it")}${registro("nuvola", "Nuvola", "nuvola.madisoft.it · studenti e tutori")}${registro("classeviva", "ClasseViva", "Spaggiari · sperimentale")}</div></fieldset>
       <fieldset><legend>2. Dati di accesso al registro</legend>
         ${campo("nome", "Nome del profilo", 'required maxlength="40" placeholder="Es. Mario"')}
-        ${m.registro === "argo" ? campo("scuola", "Codice scuola", 'required placeholder="Lo stesso che scrivi su didUP"') : ""}
-        ${campo("utente", "Nome utente", m.registro === "classeviva" ? 'required placeholder="Codice tipo S1234567X oppure email"' : "required")}
+        ${m.registro === "argo" ? campo("scuola", "Codice scuola", `required placeholder="Lo stesso che scrivi su didUP, es. SC12345" ${SENZA_CORRETTORE} autocapitalize="characters"`) : ""}
+        ${campo("utente", "Nome utente", `required ${SENZA_CORRETTORE} autocapitalize="none"${m.registro === "classeviva" ? ' placeholder="Codice tipo S1234567X oppure email"' : ""}`)}
         ${sceltaStudente(m)}
-        <label>Password<input name="password" type="password" value="${esc(m.password)}" ${m.id ? 'placeholder="Lascia vuoto per non cambiarla"' : "required"} autocomplete="new-password"></label>
+        <label>Password<span class="campo-password"><input name="password" type="password" value="${esc(m.password)}" ${m.id ? 'placeholder="Lascia vuoto per non cambiarla"' : "required"} autocomplete="new-password" autocorrect="off" spellcheck="false" autocapitalize="none">
+          <button type="button" class="btn ghost small" data-mostra-password="1" aria-pressed="false">Mostra</button></span></label>
+        <p class="note">Quando salvi, Zaino prova subito questi dati con il registro: se sono sbagliati lo vedi qui.</p>
         ${m.registro === "classeviva" ? '<p class="note">ClasseViva è appena arrivato e non è ancora stato provato su molti account: se qualcosa non torna, segnalalo nelle issue del progetto su GitHub.</p>' : ""}
         <p class="note">${P.android ? "Tutto resta su questo telefono: la password è cifrata e viene inviata solo al registro scelto, a nessun altro server." : "Tutto resta su questo computer: la password sta nel portachiavi del sistema (su Windows il Gestione credenziali) e viene inviata solo al registro scelto, a nessun altro server."}</p></fieldset>
       <fieldset><legend>3. Orario WebUntis <span class="muted">(facoltativo)</span></legend>
@@ -1544,7 +1549,8 @@ function disegnaProfili() {
         : `<div class="riga">${campo("cerca", "Cerca la scuola per nome", 'placeholder="Almeno 3 lettere"')}<button type="button" class="btn ghost" id="cerca-untis">Cerca</button></div>
           ${scuoleTrovate === null ? "" : scuoleTrovate.length ? `<ul class="scuole">${scuoleTrovate.map((s, i) => `<li><button type="button" data-scuola-untis="${i}"><strong>${esc(s.nome)}</strong><span class="muted">${esc(s.indirizzo || "")}</span></button></li>`).join("")}</ul>`
             : '<p class="muted">Nessuna scuola trovata (oppure troppe: scrivi un nome più preciso).</p>'}`}</fieldset>
-      <div class="segmenti"><button class="btn" type="submit">${m.id ? "Salva" : "Salva ed entra"}</button>
+      <div class="segmenti"><button class="btn" type="submit" id="salva-profilo">${m.id ? "Salva" : "Salva ed entra"}</button>
+        ${m.rifiutato ? '<button class="btn ghost" type="button" id="salva-senza-prova">Salva senza provare</button>' : ""}
         ${P.profili.length ? '<button class="btn ghost" type="button" id="annulla-profilo">Annulla</button>' : ""}</div>
     </form>${P.profili.length ? "" : riquadroSync() + riquadroAggiornamenti() + firma()}`;
 }
@@ -1587,16 +1593,33 @@ async function apriProfili() {
   if (P.profili.length > 1) { try { if (localStorage.getItem("vista") === "panoramica") await mostraVista("panoramica"); } catch {} }
 }
 
-async function salvaProfilo() {
+// Il server prova i dati con il registro prima di salvare: può volerci qualche secondo.
+async function salvaProfilo(forza = false) {
   leggiModulo();
   const m = modulo, untis = m.untisServer ? { server: m.untisServer, scuola: m.untisScuola, classe: m.untisClasse } : null;
+  const bottone = $("#salva-profilo"), testo = bottone ? bottone.textContent : "";
+  if (bottone) { bottone.disabled = true; bottone.textContent = forza ? "Salvo…" : "Provo l'accesso…"; }
+  avviso("");
   try {
-    const esito = await api("/api/profili", { id: m.id, profilo: { nome: m.nome, registro: m.registro, scuola: m.scuola, utente: m.utente, studente: m.studente, password: m.password, untis } });
-    P = esito; modulo = null; avviso("");
+    const esito = await api("/api/profili", { id: m.id, forza, profilo: { nome: m.nome, registro: m.registro, scuola: m.scuola, utente: m.utente, studente: m.studente, password: m.password, untis } });
+    P = esito; modulo = null;
     if (m.id) disegnaProfili(); else await entra(esito.salvato);
+    avviso(esito.avviso || "");
   } catch (errore) {
+    if (bottone) { bottone.disabled = false; bottone.textContent = testo; }
+    if (errore.credenziali && !m.rifiutato) { m.rifiutato = true; disegnaProfili(); }
     avviso(errore.message, true);
+    $("#avviso").scrollIntoView({ behavior: "smooth", block: "center" }); // sul telefono il pulsante è in fondo e l'avviso in cima
   }
+}
+
+// Mostra o nasconde la password scritta: sul telefono è il modo più semplice per accorgersi di uno spazio o di una maiuscola di troppo.
+function mostraPassword(bottone) {
+  const campo = bottone.parentElement.querySelector("input");
+  const visibile = campo.type === "password";
+  campo.type = visibile ? "text" : "password";
+  bottone.textContent = visibile ? "Nascondi" : "Mostra";
+  bottone.setAttribute("aria-pressed", String(visibile));
 }
 
 async function eliminaProfilo(id) {
@@ -1717,6 +1740,8 @@ document.addEventListener("click", (e) => {
   else if (el.dataset.elimina) eliminaProfilo(el.dataset.elimina);
   else if (el.id === "annulla-profilo") { modulo = null; avviso(""); disegnaProfili(); }
   else if (el.id === "cerca-untis") cercaScuole();
+  else if (el.dataset.mostraPassword) mostraPassword(el);
+  else if (el.id === "salva-senza-prova") salvaProfilo(true);
   else if (el.id === "cal-copia") copiaCalendario();
   else if (el.id === "cal-azzera") { try { localStorage.removeItem(chiaveCalendario()); } catch {} aggiornaCalendario(); }
   else if (el.dataset.scuolaUntis) {

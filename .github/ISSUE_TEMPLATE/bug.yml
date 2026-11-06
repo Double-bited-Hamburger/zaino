@@ -35,6 +35,14 @@ body:
     validations:
       required: true
   - type: textarea
+    id: diagnosi
+    attributes:
+      label: Risultato di --diagnosi (facoltativo, utile se i dati di accesso vengono rifiutati)
+      description: |
+        Da un terminale nella cartella del programma: `avvia.bat --diagnosi` su Windows (o `zaino.exe --diagnosi`),
+        `./avvia.sh --diagnosi` su Linux e macOS. Non contiene password, e nomi, scuola e utente sono coperti.
+      render: text
+  - type: textarea
     id: errori
     attributes:
       label: Messaggio di errore (facoltativo)

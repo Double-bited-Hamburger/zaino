@@ -1,7 +1,7 @@
 """PDF con tutti i compiti assegnati dal primo giorno, in ordine di consegna."""
 
 import io
-from datetime import date, datetime
+from datetime import datetime
 from xml.sax.saxutils import escape
 
 from reportlab.lib.pagesizes import A4
