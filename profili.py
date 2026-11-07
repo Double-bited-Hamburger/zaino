@@ -261,6 +261,27 @@ def _untis(valore):
     return {"server": server, "scuola": scuola, "classe": classe}
 
 
+def _indirizzo_circolari(valore):
+    """L'indirizzo della pagina delle circolari su trasparenza-pa.net (facoltativo: per Argo di solito si trova da solo)."""
+    import circolari
+
+    indirizzo = _testo(valore, 300)
+    if indirizzo and not circolari.da_indirizzo(indirizzo):
+        raise ProfiloNonValido("L'indirizzo delle circolari deve essere una pagina di trasparenza-pa.net, con codcli= nell'indirizzo.")
+    return indirizzo
+
+
+def fonte_circolari(profilo):
+    """(codice cliente, node) delle circolari del profilo, o None. Argo: il codice scuola è lo stesso di trasparenza-pa.net."""
+    import circolari
+
+    if (profilo or {}).get("circolari"):
+        return circolari.da_indirizzo(profilo["circolari"])
+    if (profilo or {}).get("registro") == "argo" and profilo.get("scuola"):
+        return codice_scuola(profilo["scuola"]), ""
+    return None
+
+
 def stesso_accesso(a, b):
     """True se i due profili entrano nello stesso account (i vecchi profili possono avere il codice scuola in minuscolo)."""
     chiave = lambda p: (p.get("registro"), codice_scuola(p.get("scuola")), nome_utente(p.get("registro"), p.get("utente")))
@@ -282,6 +303,7 @@ def controlla(dati, id_profilo=None):
         # Solo ClasseViva: quale studente mostrare se l'account ne ha più d'uno ("" = il primo).
         "studente": _testo(dati.get("studente"), 20) if registro == "classeviva" else "",
         "untis": _untis(dati.get("untis")),
+        "circolari": _indirizzo_circolari(dati.get("circolari")),
         "modificato": adesso(),  # tra due copie dello stesso profilo la sincronizzazione tiene la più recente
     }
     if not nuovo["nome"]:
@@ -330,6 +352,8 @@ def salva(dati, id_profilo=None):
                 nuovo["dati_dal"] = vecchio.get("dati_dal", "")
             if vecchio.get("orario_personale"):
                 nuovo["orario_personale"] = vecchio["orario_personale"]  # si cambia da imposta_orario, non dal modulo del profilo
+            if vecchio.get("circolari", "") != nuovo["circolari"] or not stesso_account:
+                (cartella(id_profilo) / "circolari.json").unlink(missing_ok=True)
             if vecchio.get("untis") != nuovo["untis"]:
                 (cartella(id_profilo) / "orario.json").unlink(missing_ok=True)
             else:

@@ -57,6 +57,8 @@ class Base(unittest.TestCase):
         self.enterContext(mock.patch.object(profili, "_portachiavi", lambda: self.portachiavi))
         self.enterContext(mock.patch.object(dati, "PAUSA_RIPROVA", 0))
         self.prova_accesso = self.enterContext(mock.patch.object(dati, "prova_accesso"))
+        # Le circolari stanno su un sito pubblico: le prove ne ricevono un elenco vuoto, a meno che non ne mettano uno.
+        self.circolari = self.enterContext(mock.patch.object(dati.circolari, "scarica", return_value=("1", [])))
         self.addCleanup(dati.attiva, None)
         dati.attiva(None)
         prove.TENTATIVI_RETE.clear()

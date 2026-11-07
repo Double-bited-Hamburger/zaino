@@ -268,6 +268,16 @@ tr.con-sotto td { border-bottom: 0; padding-bottom: 4px; }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600;
   background: var(--warn-bg); color: var(--warn); white-space: nowrap; }
 .tag.bad { background: var(--bad-bg); color: var(--bad); }
+.tabs button[hidden], :root[data-tema] .tabs button[hidden] { display: none; }
+.tag.tenue { background: none; border: 1px solid var(--line); color: var(--muted); font-weight: 500; }
+
+/* Circolari */
+ul.circolari { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 10px; }
+ul.circolari li { padding: 12px 14px; display: grid; gap: 6px; }
+ul.circolari li.mia { border-color: var(--accent); }
+ul.circolari p { margin: 0; font-size: 14px; }
+.circ-testa { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+@media (min-width: 1100px) { ul.circolari { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
 
 /* Profili */
 .azioni { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }

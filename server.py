@@ -325,6 +325,16 @@ class Gestore(BaseHTTPRequestHandler):
             except Exception:
                 annota_errore()
                 avviso = "Orario non aggiornato per un errore imprevisto (dettagli in cache/errori.log)."
+            # Anche le circolari sono a parte: stanno su un sito pubblico della scuola, non sul registro.
+            try:
+                dati.scarica_circolari()
+            except ErroreRegistro as errore:
+                avviso = " ".join(filter(None, (avviso, f"Circolari non aggiornate: {errore}.")))
+            except requests.RequestException:
+                avviso = " ".join(filter(None, (avviso, "Circolari non aggiornate: il sito delle circolari non è raggiungibile.")))
+            except Exception:
+                annota_errore()
+                avviso = " ".join(filter(None, (avviso, "Circolari non aggiornate per un errore imprevisto (dettagli in cache/errori.log).")))
             try:
                 scaricati = dati.scarica()
                 grezzi = scaricati.get("classeviva") if isinstance(scaricati, dict) else None

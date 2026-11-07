@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 import requests
 
 import archivio
+import circolari
 import classeviva_adatta
 import config
 import nuvola_adatta
@@ -24,7 +25,7 @@ from nuvola_client import NuvolaClient
 
 # Il profilo in uso e i suoi file: li imposta attiva() quando si sceglie un profilo.
 PROFILO = None
-CACHE = CACHE_ORARIO = STATO = None
+CACHE = CACHE_ORARIO = CACHE_CIRCOLARI = STATO = None
 
 # Il server risponde a più richieste insieme: le modifiche alle spunte vanno fatte una alla volta.
 _blocco_stato = threading.Lock()
@@ -34,13 +35,14 @@ _scrivi, _leggi = archivio.scrivi, archivio.leggi
 
 def attiva(profilo, ricorda=True):
     """Da qui in poi l'app lavora sui dati di questo profilo (None = nessun profilo)."""
-    global PROFILO, CACHE, CACHE_ORARIO, STATO
+    global PROFILO, CACHE, CACHE_ORARIO, CACHE_CIRCOLARI, STATO
     PROFILO = profilo
     if profilo is None:
-        CACHE = CACHE_ORARIO = STATO = None
+        CACHE = CACHE_ORARIO = CACHE_CIRCOLARI = STATO = None
         return
     cartella = profili.cartella(profilo["id"])
     CACHE, CACHE_ORARIO, STATO = cartella / "dashboard.json", cartella / "orario.json", cartella / "stato.json"
+    CACHE_CIRCOLARI = cartella / "circolari.json"
     if ricorda:
         profili.segna_ultimo(profilo["id"])
 
@@ -154,6 +156,35 @@ def carica():
     if not dati or not isinstance(dati.get("dashboard"), dict):
         return None
     dati.setdefault("scaricato", datetime.fromtimestamp(CACHE.stat().st_mtime).isoformat(timespec="seconds"))
+    return dati
+
+
+MASSIMO_CIRCOLARI = 60  # quante tenerne: le più vecchie si trovano comunque sul sito della scuola
+
+
+def scarica_circolari():
+    """Scarica le ultime circolari della scuola del profilo (sito pubblico, niente password) e le unisce a quelle già lette."""
+    fonte, cache = profili.fonte_circolari(PROFILO), CACHE_CIRCOLARI
+    if not fonte:
+        if cache:
+            cache.unlink(missing_ok=True)
+        return None
+    codcli, node = fonte
+    node, nuove = circolari.scarica(codcli, node)
+    precedenti = carica_circolari() or {}
+    vecchie = precedenti.get("circolari", []) if precedenti.get("codcli") == codcli else []
+    lette = {c["id"] for c in nuove}
+    tutte = sorted(nuove + [c for c in vecchie if c.get("id") not in lette], key=lambda c: (c.get("data") or "", c.get("id") or 0), reverse=True)
+    contenuto = {"scaricato": datetime.now().isoformat(timespec="seconds"), "codcli": codcli, "node": node, "circolari": tutte[:MASSIMO_CIRCOLARI]}
+    _scrivi(cache, contenuto)
+    return contenuto
+
+
+def carica_circolari():
+    dati = _leggi(CACHE_CIRCOLARI) if CACHE_CIRCOLARI else None
+    if not dati or not isinstance(dati.get("circolari"), list):
+        return None
+    dati["circolari"] = [c for c in dati["circolari"] if isinstance(c, dict) and isinstance(c.get("id"), int) and isinstance(c.get("titolo"), str)]
     return dati
 
 
@@ -357,9 +388,18 @@ def elabora(dati, oggi=None):
             "carico": carico,
             "assenze": stats.assenze(eventi, lezioni, orario.ore_settimanali(lezioni_settimana)),
             "orario": _orario(dashboard, lezioni_settimana, grezzo_orario),
+            "circolari": _circolari(),
             "scartate": dict(Counter(scartate)),
         }
     )
+
+
+def _circolari():
+    """Le circolari per la pagina; None se il profilo non ne ha (registro diverso da Argo e nessun indirizzo)."""
+    if not profili.fonte_circolari(PROFILO):
+        return None
+    salvate = carica_circolari() or {}
+    return {"scaricato": salvate.get("scaricato"), "elenco": salvate.get("circolari", [])}
 
 
 def riassunto(elaborati, stato, oggi=None):

@@ -5,7 +5,7 @@ const GIORNI = ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "ve
 const MESI = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
 const MESI_LUNGHI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
 const MINUTI_VALIDITA = 30; // oltre questa età i dati vengono riscaricati all'apertura
-const SCHEDE = ["oggi", "agenda", "compiti", "orario", "voti", "carico", "assenze"];
+const SCHEDE = ["oggi", "agenda", "compiti", "orario", "voti", "circolari", "carico", "assenze"];
 
 let D = null; // dati elaborati dal server
 let fatti = new Set(); // id dei compiti spuntati
@@ -257,10 +257,11 @@ const barraTacche = (pezzi, etichetta) => `<div class="tacche" role="img" aria-l
 // hanno un puntino rosso finché non esci dalla scheda che li mostra. Alla primissima apertura tutto conta come già visto.
 const chiaveVoto = (v) => `${v.data}|${v.materia}|${v.codice}|${v.descrizione}`;
 const chiaveVerifica = (p) => `${p.data}|${p.materia}|${p.testo}`;
-const VISTE_DA = { agenda: ["verifiche", "compiti"], compiti: ["compiti"], voti: ["voti"] };
+const VISTE_DA = { agenda: ["verifiche", "compiti"], compiti: ["compiti"], voti: ["voti"], circolari: ["circolari"] };
 let visti = null; // {voti, verifiche, compiti}: Set di chiavi
 
-const chiaviAttuali = () => ({ voti: D.voti.map(chiaveVoto), verifiche: verificheFuture().map(chiaveVerifica), compiti: D.compiti.map((c) => c.id) });
+const chiaviAttuali = () => ({ voti: D.voti.map(chiaveVoto), verifiche: verificheFuture().map(chiaveVerifica), compiti: D.compiti.map((c) => c.id),
+  circolari: ((D.circolari && D.circolari.elenco) || []).map((c) => String(c.id)) });
 const chiaveVisti = () => `visti-${(P && P.attivo) || ""}`;
 
 function caricaVisti() {
@@ -271,7 +272,8 @@ function caricaVisti() {
     salvati = attuali;
     try { localStorage.setItem(chiaveVisti(), JSON.stringify(attuali)); } catch {}
   }
-  visti = Object.fromEntries(Object.keys(attuali).map((c) => [c, new Set(Array.isArray(salvati[c]) ? salvati[c] : [])]));
+  // Una categoria arrivata con un aggiornamento di Zaino (le circolari) parte con tutto già visto, come alla prima apertura.
+  visti = Object.fromEntries(Object.keys(attuali).map((c) => [c, new Set(Array.isArray(salvati[c]) ? salvati[c] : attuali[c])]));
 }
 
 const nuovo = (categoria, chiave) => Boolean(visti && !visti[categoria].has(chiave));
@@ -1212,7 +1214,38 @@ async function copiaCalendario() {
   setTimeout(() => { if ($("#cal-copia")) $("#cal-copia").textContent = "Copia"; }, 2000);
 }
 
-const CONTENUTO = { oggi: schedaOggi, agenda: schedaAgenda, compiti: schedaCompiti, orario: schedaOrario, voti: schedaVoti, carico: schedaCarico, assenze: schedaAssenze };
+const CONTENUTO = { oggi: schedaOggi, agenda: schedaAgenda, compiti: schedaCompiti, orario: schedaOrario, voti: schedaVoti, circolari: schedaCircolari, carico: schedaCarico, assenze: schedaAssenze };
+
+/* ---------- circolari ---------- */
+
+// Dal sito pubblico della scuola (trasparenza-pa.net), scaricate con «Aggiorna»: solo per i profili che le hanno.
+let cercaCircolari = "", soloMiaClasse = false;
+const miaClasse = () => String(D.classe || "").replace(/\s+/g, "").toUpperCase();
+const perMiaClasse = (c) => Boolean(miaClasse()) && (c.classi || []).some((k) => miaClasse().startsWith(k.toUpperCase()) || k.toUpperCase() === miaClasse());
+
+function elencoCircolari() {
+  const parole = cercaCircolari.toLowerCase().split(/\s+/).filter(Boolean);
+  const elenco = ((D.circolari && D.circolari.elenco) || []).filter((c) => (!soloMiaClasse || perMiaClasse(c))
+    && parole.every((p) => `${c.numero || ""} ${c.titolo} ${c.descrizione} ${(c.etichette || []).join(" ")}`.toLowerCase().includes(p)));
+  if (!elenco.length) return `<div class="box"><div class="empty">${!D.circolari.elenco.length ? "Nessuna circolare ancora scaricata: premi «Aggiorna»."
+    : soloMiaClasse && !parole.length ? `Tra le ultime circolari nessuna nomina la ${esc(D.classe)}.` : "Nessuna circolare trovata."}</div></div>`;
+  return `<ul class="circolari">${elenco.map((c) => `<li class="box${perMiaClasse(c) ? " mia" : ""}">
+      <div class="circ-testa">${puntoNuovo(nuovo("circolari", String(c.id)))}<span class="muted">${c.numero ? `n. ${c.numero} · ` : ""}${c.data ? `${dataLunga(c.data)} · ${quando(c.data)}` : ""}</span>
+        ${perMiaClasse(c) ? '<span class="tag">la tua classe</span>' : ""}${(c.etichette || []).map((e) => `<span class="tag tenue">${esc(e)}</span>`).join("")}</div>
+      <strong>${esc(c.titolo)}</strong>${c.descrizione ? `<p class="muted">${esc(c.descrizione)}</p>` : ""}
+      <div class="segmenti">${(c.allegati || []).slice(0, 4).map((a, i) => `<a class="btn ${i ? "ghost " : ""}small" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(i ? a.nome.replace(/\.pdf$/i, "") : "Apri la circolare")}</a>`).join("")}
+        <a class="btn ghost small" href="${esc(c.link)}" target="_blank" rel="noopener">Sul sito${(c.allegati || []).length > 4 ? ` (altri ${c.allegati.length - 4} allegati)` : ""}</a></div></li>`).join("")}</ul>`;
+}
+
+function schedaCircolari() {
+  const C = D.circolari;
+  if (!C) return '<div class="box"><div class="empty">Questo profilo non ha le circolari: modificalo e incolla l\'indirizzo della pagina delle circolari su trasparenza-pa.net.</div></div>';
+  const classe = miaClasse() ? `<button type="button" class="btn small${soloMiaClasse ? "" : " ghost"}" data-circ-classe="1" aria-pressed="${soloMiaClasse}">Solo la ${esc(D.classe)}</button>` : "";
+  return `${titolo("Circolari della scuola", C.scaricato ? `aggiornate ${quando(C.scaricato) === "oggi" ? "oggi" : "il " + dataBreve(C.scaricato)}` : "")}
+    <div class="riga cerca"><input type="search" id="cerca-circolari" value="${esc(cercaCircolari)}" placeholder="Cerca: sciopero, uscita, assemblea…" aria-label="Cerca nelle circolari" autocomplete="off">${classe}</div>
+    <div id="elenco-circolari">${elencoCircolari()}</div>
+    <p class="note">Dal sito pubblico della scuola: Zaino legge solo l'elenco, senza password. I PDF si aprono sul sito.</p>`;
+}
 
 /* ---------- disegno e interazione ---------- */
 
@@ -1242,6 +1275,9 @@ function applica(dati) {
     return;
   }
   caricaVisti();
+  const tabCircolari = document.querySelector('.tabs [data-tab="circolari"]');
+  tabCircolari.hidden = !D.circolari;
+  if (!D.circolari && scheda === "circolari") scheda = "oggi";
   impostaTitolo("Zaino", D.studente ? "di " + D.studente : "");
   const t = new Date(D.scaricato);
   $("#aggiornato").textContent = `${D.classe ? "Classe " + D.classe + " · " : ""}aggiornato ${quando(D.scaricato) === "oggi" ? "oggi" : "il " + dataBreve(D.scaricato)} alle ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
@@ -1294,14 +1330,14 @@ function nuovoModulo(profilo) {
   const u = (profilo && profilo.untis) || {};
   scuoleTrovate = null;
   return { id: profilo ? profilo.id : null, registro: profilo ? profilo.registro : "", nome: profilo ? profilo.nome : "", scuola: profilo ? profilo.scuola : "",
-    utente: profilo ? profilo.utente : "", studente: (profilo && profilo.studente) || "", password: "", untisServer: u.server || "", untisScuola: u.scuola || "", untisClasse: u.classe || "", cerca: "" };
+    utente: profilo ? profilo.utente : "", studente: (profilo && profilo.studente) || "", password: "", circolari: (profilo && profilo.circolari) || "", untisServer: u.server || "", untisScuola: u.scuola || "", untisClasse: u.classe || "", cerca: "" };
 }
 
 // Copia nel modulo ciò che è stato scritto finora, così ridisegnare la pagina non cancella nulla.
 function leggiModulo() {
   const f = $("#modulo-profilo");
   if (!f || !modulo) return;
-  ["nome", "scuola", "utente", "studente", "password", "untisClasse", "cerca"].forEach((c) => { if (f.elements[c]) modulo[c] = f.elements[c].value; });
+  ["nome", "scuola", "utente", "studente", "password", "circolari", "untisClasse", "cerca"].forEach((c) => { if (f.elements[c]) modulo[c] = f.elements[c].value; });
   const scelto = f.querySelector('input[name="registro"]:checked');
   if (scelto) modulo.registro = scelto.value;
 }
@@ -1549,6 +1585,8 @@ function disegnaProfili() {
         : `<div class="riga">${campo("cerca", "Cerca la scuola per nome", 'placeholder="Almeno 3 lettere"')}<button type="button" class="btn ghost" id="cerca-untis">Cerca</button></div>
           ${scuoleTrovate === null ? "" : scuoleTrovate.length ? `<ul class="scuole">${scuoleTrovate.map((s, i) => `<li><button type="button" data-scuola-untis="${i}"><strong>${esc(s.nome)}</strong><span class="muted">${esc(s.indirizzo || "")}</span></button></li>`).join("")}</ul>`
             : '<p class="muted">Nessuna scuola trovata (oppure troppe: scrivi un nome più preciso).</p>'}`}</fieldset>
+      <fieldset><legend>4. Circolari della scuola <span class="muted">(facoltativo)</span></legend>
+        ${campo("circolari", "Indirizzo della pagina delle circolari su trasparenza-pa.net", `placeholder="${m.registro === "argo" ? "Con Argo di solito non serve: Zaino la trova dal codice scuola" : "https://trasparenza-pa.net/?codcli=…&node=…"}" ${SENZA_CORRETTORE} autocapitalize="none" inputmode="url"`)}</fieldset>
       <div class="segmenti"><button class="btn" type="submit" id="salva-profilo">${m.id ? "Salva" : "Salva ed entra"}</button>
         ${m.rifiutato ? '<button class="btn ghost" type="button" id="salva-senza-prova">Salva senza provare</button>' : ""}
         ${P.profili.length ? '<button class="btn ghost" type="button" id="annulla-profilo">Annulla</button>' : ""}</div>
@@ -1601,7 +1639,7 @@ async function salvaProfilo(forza = false) {
   if (bottone) { bottone.disabled = true; bottone.textContent = forza ? "Salvo…" : "Provo l'accesso…"; }
   avviso("");
   try {
-    const esito = await api("/api/profili", { id: m.id, forza, profilo: { nome: m.nome, registro: m.registro, scuola: m.scuola, utente: m.utente, studente: m.studente, password: m.password, untis } });
+    const esito = await api("/api/profili", { id: m.id, forza, profilo: { nome: m.nome, registro: m.registro, scuola: m.scuola, utente: m.utente, studente: m.studente, password: m.password, circolari: m.circolari, untis } });
     P = esito; modulo = null;
     if (m.id) disegnaProfili(); else await entra(esito.salvato);
     avviso(esito.avviso || "");
@@ -1677,6 +1715,7 @@ document.addEventListener("change", (e) => {
 
 document.addEventListener("input", (e) => {
   if (e.target.id === "cerca-compiti") { ricerca = e.target.value; aggiornaRicerca(); }
+  if (e.target.id === "cerca-circolari") { cercaCircolari = e.target.value; $("#elenco-circolari").innerHTML = elencoCircolari(); }
 });
 document.addEventListener("toggle", (e) => {
   if (e.target.id === "calendario") calendarioAperto = e.target.open;
@@ -1740,6 +1779,7 @@ document.addEventListener("click", (e) => {
   else if (el.dataset.elimina) eliminaProfilo(el.dataset.elimina);
   else if (el.id === "annulla-profilo") { modulo = null; avviso(""); disegnaProfili(); }
   else if (el.id === "cerca-untis") cercaScuole();
+  else if (el.dataset.circClasse) { soloMiaClasse = !soloMiaClasse; mostra(); }
   else if (el.dataset.mostraPassword) mostraPassword(el);
   else if (el.id === "salva-senza-prova") salvaProfilo(true);
   else if (el.id === "cal-copia") copiaCalendario();

@@ -1,5 +1,9 @@
 # Novità
 
+## Prossima versione
+
+- **Circolari della scuola**: una scheda nuova con le ultime circolari, prese dal sito pubblico della scuola su trasparenza-pa.net, lo stesso che usa il bot Telegram delle circolari. Non serve nessuna password. Con Argo Zaino trova da solo la cartella dell'anno dal codice scuola; con gli altri registri, o se la scuola le pubblica altrove, nel profilo si incolla l'indirizzo della pagina. Ogni circolare ha numero, data, etichette (sciopero, uscite, assemblea…), il PDF da aprire e un segno se nomina la tua classe; si possono cercare e filtrare per classe. Le nuove hanno il puntino come voti e verifiche. Si aggiornano con «Aggiorna»: se il sito delle circolari non risponde, il resto si aggiorna lo stesso.
+
 ## 0.6.3
 
 - **Sul PC la pagina respira**: nella scheda «Oggi» verifiche e voti, l'elenco più lungo, stavano nella colonna più stretta e andavano a capo di continuo. Ora hanno la colonna più larga, e su uno schermo medio vanno sotto a tutta larghezza. La pagina arriva a 1480 pixel invece di 1280, e titolo, «Profili» e «Aggiorna» restano in cima mentre scorri. Sul telefono non cambia niente.
