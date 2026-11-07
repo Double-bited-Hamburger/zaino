@@ -1,5 +1,10 @@
 # Novità
 
+## 0.6.3
+
+- **Sul PC la pagina respira**: nella scheda «Oggi» verifiche e voti, l'elenco più lungo, stavano nella colonna più stretta e andavano a capo di continuo. Ora hanno la colonna più larga, e su uno schermo medio vanno sotto a tutta larghezza. La pagina arriva a 1480 pixel invece di 1280, e titolo, «Profili» e «Aggiorna» restano in cima mentre scorri. Sul telefono non cambia niente.
+- Sotto gli avvisi non compare più una striscia azzurra vuota.
+
 ## 0.6.2
 
 Dati di accesso giusti rifiutati, o «dati non validi» che compariva a caso: le cause trovate e sistemate.
