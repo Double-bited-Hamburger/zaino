@@ -219,6 +219,7 @@ h3 { font-size: 15px; margin: 0 0 2px; }
 
 .avviso { margin-top: 16px; padding: 10px 14px; border-radius: var(--r); background: var(--warn-bg); color: var(--warn); }
 .avviso.errore { background: var(--bad-bg); color: var(--bad); }
+.avviso[hidden] { display: none; } /* .nuova-versione è flex: senza questa, la striscia vuota resterebbe visibile */
 /* Orario scritto a mano e scelta delle ore doppie (scheda Orario). */
 .editor-giorni { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
 .giorno-editor h3 { margin: 0 0 10px; }
@@ -636,8 +637,15 @@ ul.consigli .icona.conto b { font-size: 18px; }
 ul.consigli .icona.conto small { font-size: 10px; font-weight: 500; }
 .oggi-voti { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); margin-top: 0; }
 .oggi-voti .progresso { height: 4px; margin-top: 10px; }
-@media (min-width: 760px) { .oggi-griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (min-width: 1180px) { .oggi-griglia { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .8fr); } }
+/* La terza colonna (verifiche e voti) è quella con più righe: con due colonne va sotto a tutta larghezza, con tre è la più larga. */
+@media (min-width: 760px) {
+  .oggi-griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .oggi-colonna:nth-child(3) { grid-column: 1 / -1; }
+}
+@media (min-width: 1180px) {
+  .oggi-griglia { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); }
+  .oggi-colonna:nth-child(3) { grid-column: auto; }
+}
 @media (min-width: 760px) { .oggi-colonna:nth-child(-n+2) > h2:first-child { margin-top: 0; } }
 @media (min-width: 1180px) { .oggi-colonna > h2:first-child { margin-top: 0; } }
 
@@ -668,7 +676,10 @@ details.calendario textarea { width: 100%; min-height: 200px; font: 13px/1.5 ui-
 /* Menu: sul PC una barra laterale, sul telefono una barra fissa in basso con le sole icone (il nome della sezione aperta sotto la sua).
    Le regole col tema servono a coprire i bottoni a pillola dei temi Nothing e Ultra, pensati per la riga di schede. */
 @media (min-width: 1000px) {
-  main { max-width: 1280px; }
+  main { max-width: 1480px; }
+  /* L'intestazione (titolo, Profili, Aggiorna) resta in cima mentre si scorre, allineata ai contenuti accanto al menu. */
+  main:has(#app:not([hidden])) .top { position: sticky; top: 0; z-index: 4; background: var(--bg); margin: -24px 0 0; padding: 20px 0 14px 246px; box-shadow: 0 1px 0 var(--line); }
+  main:has(#app:not([hidden])) > .avviso { margin-left: 246px; }
   #app:not([hidden]) { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 0 36px; align-items: start; }
   .tabs { flex-direction: column; gap: 2px; position: sticky; top: 16px; margin-top: 24px; box-shadow: none; overflow: visible; }
   .tabs button { border-bottom: 0; border-radius: var(--r); padding: 10px 12px; }
