@@ -1,5 +1,9 @@
 # Novità
 
+## 0.7.1
+
+- **L'app Android si apre di nuovo**: all'avvio diceva «L'app non è riuscita ad avviarsi», perché nell'APK mancava il file degli aggiornamenti (`aggiornamenti.py`) che il server carica appena parte. Ora c'è, e una prova nuova (`prove/test_apk.py`) controlla che nell'APK ci siano tutti i file che l'app importa.
+
 ## 0.7.0
 
 - **Circolari della scuola**: una scheda nuova con le ultime circolari, prese dal sito pubblico della scuola su trasparenza-pa.net, lo stesso che usa il bot Telegram delle circolari. Non serve nessuna password. Con Argo Zaino trova da solo la cartella dell'anno dal codice scuola; con gli altri registri, o se la scuola le pubblica altrove, nel profilo si incolla l'indirizzo della pagina. Ogni circolare ha numero, data, etichette (sciopero, uscite, assemblea…), il PDF da aprire e un segno se nomina la tua classe; si possono cercare e filtrare per classe. Le nuove hanno il puntino come voti e verifiche. Si aggiornano con «Aggiorna»: se il sito delle circolari non risponde, il resto si aggiorna lo stesso.
