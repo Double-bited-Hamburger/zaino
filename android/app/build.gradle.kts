@@ -18,7 +18,7 @@ val firma = proprieta("keystore.properties")
 val radice = rootProject.projectDir.parentFile
 val moduli = listOf(
     // config_locale (impostazioni personali) entra nell'APK solo se esiste: non metterlo negli APK da pubblicare.
-    "archivio", "argo_client", "circolari", "classeviva_adatta", "classeviva_client", "config", "config_locale", "dati", "notifiche", "nuvola_adatta", "nuvola_client",
+    "aggiornamenti", "archivio", "argo_client", "circolari", "classeviva_adatta", "classeviva_client", "config", "config_locale", "dati", "notifiche", "nuvola_adatta", "nuvola_client",
     "orario", "parser", "pdf_compiti", "pdf_settimana", "profili", "server", "sincronizza", "stats", "untis_client",
 )
 
