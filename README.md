@@ -20,14 +20,15 @@ Argo · Nuvola · ClasseViva · WebUntis, sul PC e sul telefono. Tutto in locale
 
 ## ✨ Cosa fa
 
-Zaino (prima si chiamava «Parser Compiti») legge il registro elettronico della scuola e l'orario WebUntis, e li mette insieme in un'unica pagina divisa in sette schede:
+Zaino (prima si chiamava «Parser Compiti») legge il registro elettronico della scuola e l'orario WebUntis, e li mette insieme in un'unica pagina divisa in otto schede:
 
-- ☀️ **Oggi**: la giornata a colpo d'occhio, con la lezione in corso e il conto alla rovescia alla campanella;
+- ☀️ **Oggi**: la giornata a colpo d'occhio, con la lezione in corso e il conto alla rovescia alla campanella; sul PC diventa una plancia con i riquadri di tutte le schede;
 - 📅 **Agenda**: il calendario del mese con verifiche, compiti e variazioni d'orario;
 - ✅ **Compiti**: la settimana come un planner, con i compiti da spuntare;
 - 🕒 **Orario**: la settimana con supplenze e variazioni, un colore per materia;
 - 📊 **Voti**: medie, grafici e il simulatore «Che voto mi serve?»;
 - 🏋️ **Carico di lavoro**: i giorni pieni in arrivo e da quali materie arriva il lavoro;
+- 📰 **Circolari**: le ultime circolari della scuola, dal sito pubblico, con quelle della tua classe in evidenza;
 - 🚸 **Assenze**: quante ore puoi ancora perdere rispetto al limite annuale.
 
 E inoltre:
@@ -35,7 +36,7 @@ E inoltre:
 - 🔔 **notifiche e widget** sul telefono, per nuovi voti, verifiche, compiti e cambi d'orario;
 - 🔄 **PC e telefono sincronizzati** in Wi‑Fi, senza passare da Internet;
 - 👥 **più profili**, per esempio per fratelli;
-- 🎨 **sette temi**: Automatico, Chiaro, Scuro, Quaderno, Terminale, Nothing e Ultra.
+- 🎨 **sette temi**: Automatico, Chiaro, Scuro, Quaderno, Terminale, Nothing e Ultra, con icone per ogni materia e Zaino, la mascotte.
 
 ## 📥 Scarica
 
@@ -180,7 +181,7 @@ Le prove stanno in `prove/` (una prova sola: `py -m unittest prove.test_accesso`
 
 ## 📄 Licenza
 
-[MIT](LICENSE).
+[MIT](LICENSE). Il carattere Nunito incluso nell'app ha la sua licenza (SIL Open Font License): vedi [LICENZE-TERZE.md](LICENZE-TERZE.md).
 
 <div align="center">
 <sub>Fatto da uno studente, per studenti 🎒</sub>

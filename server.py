@@ -27,6 +27,11 @@ from archivio import CredenzialiRifiutate, ErroreRegistro
 from untis_client import UntisError
 
 WEB = Path(config.WEB_DIR) if config.WEB_DIR else Path(__file__).parent / "web"
+# Non tutti i Python (né tutti i Windows) conoscono questi tipi: senza, con «nosniff» il browser rifiuterebbe font e disegni.
+mimetypes.add_type("font/woff2", ".woff2")
+mimetypes.add_type("image/svg+xml", ".svg")
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/css", ".css")
 REGISTRO_ERRORI = (Path(config.DATI_DIR) if config.DATI_DIR else Path(__file__).parent) / "cache" / "errori.log"
 # Il tema scelto nella pagina: sul telefono serve ai widget, che si vestono allo stesso modo (notifiche.widget).
 PREFERENZE = (Path(config.DATI_DIR) if config.DATI_DIR else Path(__file__).parent) / "cache" / "preferenze.json"
@@ -213,7 +218,8 @@ class Gestore(BaseHTTPRequestHandler):
         if WEB.resolve() not in file.parents or not file.is_file():
             return self._rispondi(404, {"errore": "Non trovato."})
         tipo = mimetypes.guess_type(file.name)[0] or "application/octet-stream"
-        self._rispondi(200, file.read_bytes(), f"{tipo}; charset=utf-8")
+        testo = tipo.startswith("text/") or tipo in ("application/json", "image/svg+xml")
+        self._rispondi(200, file.read_bytes(), f"{tipo}; charset=utf-8" if testo else tipo)
 
     @protetto
     def do_POST(self):

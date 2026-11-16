@@ -84,8 +84,8 @@ flusso.append(Spacer(0, 8))
 
 titolo("In breve")
 paragrafo("Zaino è un'app per studenti. Legge il registro elettronico con il tuo account (Argo didUP, Nuvola oppure, in prova, "
-          "ClasseViva) e l'orario della classe da WebUntis, e mette tutto in un'unica pagina divisa in sette schede: Oggi, Agenda, "
-          "Compiti, Orario, Voti, Carico di lavoro e Assenze. Gira sul PC (Windows, Linux, macOS) e come app Android; le due copie "
+          "ClasseViva) e l'orario della classe da WebUntis, e mette tutto in un'unica pagina divisa in otto schede: Oggi, Agenda, "
+          "Compiti, Orario, Voti, Circolari, Carico di lavoro e Assenze. Gira sul PC (Windows, Linux, macOS) e come app Android; le due copie "
           "si sincronizzano in Wi-Fi.")
 paragrafo("<b>Legge soltanto</b>: sul registro e su WebUntis non modifica nulla. <b>È tutto locale</b>: non c'è un server del progetto, "
           "né account, pubblicità o statistiche d'uso. Prima si chiamava «Parser Compiti».")
@@ -118,7 +118,9 @@ titolo("Le schede")
 tabella(["Scheda", "Cosa trovi"], [
     ["Oggi", "Quattro numeri (compiti da fare, verifiche della settimana, giorni alla prossima verifica, media generale), "
              "il riquadro «Adesso» con il conto alla rovescia alla fine dell'ora, l'orario del giorno con lo stato di ogni ora, "
-             "i compiti per il giorno dopo da spuntare, le verifiche in arrivo e gli ultimi voti."],
+             "i compiti per il giorno dopo da spuntare, le verifiche in arrivo e gli ultimi voti. Sul PC diventa una plancia: "
+             "accanto ci sono anche i prossimi 14 giorni, le medie per materia, cosa fare adesso, il mese, le assenze e le ultime "
+             "circolari, ognuno con «Apri» per la scheda completa. Il bottone accanto al tema riduce il menu alle sole icone."],
     ["Agenda", "Il calendario del mese con un puntino per ogni impegno: verifiche, compiti, variazioni d'orario, promemoria. "
                "Tocchi un giorno e accanto vedi cosa c'è. Sotto, gli elenchi completi e il testo da copiare in Google Calendar."],
     ["Compiti", "La settimana come un planner: sul PC una colonna per giorno, sul telefono una striscia di giorni da toccare. "

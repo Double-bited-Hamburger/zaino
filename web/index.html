@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Zaino</title>
 <script src="tema.js"></script>
+<link rel="preload" href="nunito.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- Le icone del menu: sul PC accanto al nome, sul telefono da sole nella barra in basso (style.css). -->
+<!-- Icone (24×24, a tratto, prendono il colore del testo) e la mascotte Zaino. app.js le usa con ico(nome) e vuoto(posa, testo). -->
 <svg class="icone" aria-hidden="true">
+  <!-- menu -->
   <symbol id="i-oggi" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
   <symbol id="i-agenda" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
   <symbol id="i-compiti" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></symbol>
@@ -18,6 +20,124 @@
   <symbol id="i-carico" viewBox="0 0 24 24"><path d="M3 12h4l3 8 4-16 3 8h4"/></symbol>
   <symbol id="i-circolari" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12a1 1 0 0 1-1 1H4z"/><path d="M8 11h8M8 15h8M8 7h5"/></symbol>
   <symbol id="i-assenze" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 8l4 4M21 8l-4 4"/></symbol>
+  <!-- azioni -->
+  <symbol id="i-aggiorna" viewBox="0 0 24 24"><path d="M20 11A8 8 0 0 0 5.4 6.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 21v-5h-5"/></symbol>
+  <symbol id="i-profili" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></symbol>
+  <symbol id="i-entra" viewBox="0 0 24 24"><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/><path d="M3 12h12M11 8l4 4-4 4"/></symbol>
+  <symbol id="i-matita" viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+  <symbol id="i-cestino" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-scarica" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></symbol>
+  <symbol id="i-copia" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-spunta" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-freccia" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-su" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-giu" viewBox="0 0 24 24"><path d="m3 7 6 6 4-4 8 8"/><path d="M15 17h6v-6"/></symbol>
+  <symbol id="i-stabile" viewBox="0 0 24 24"><path d="M3 12h18M17 8l4 4-4 4"/></symbol>
+  <symbol id="i-cerca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+  <symbol id="i-piu" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-pannello" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15.5 10 13.5 12l2 2"/></symbol>
+  <symbol id="i-esterno" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <!-- contenuti -->
+  <symbol id="i-bandiera" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-sveglia" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M5 3 2 6M19 3l3 3"/></symbol>
+  <symbol id="i-avviso" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-festa" viewBox="0 0 24 24"><path d="M4 20 8.5 8l7.5 7.5z"/><path d="M14 3.5v2M20.5 10h-2M18.5 5.5l-2 2M11.5 6.5l.5-1M17.5 12.5l1-.5"/></symbol>
+  <symbol id="i-stelline" viewBox="0 0 24 24"><path d="M11 3l1.7 4.8L17.5 9.5l-4.8 1.7L11 16l-1.7-4.8L4.5 9.5l4.8-1.7z"/><path d="M18.5 14.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></symbol>
+  <symbol id="i-obiettivo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-lampadina" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.1V16h5v-.1c0-.8.4-1.6 1.1-2.1A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-media" viewBox="0 0 24 24"><path d="M3.5 17a8.5 8.5 0 1 1 17 0"/><path d="m12 17 4-5"/><path d="M3.5 20h17"/></symbol>
+  <symbol id="i-orologio-pieno" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2M16 3.5a9 9 0 0 1 4.5 4.5"/></symbol>
+  <!-- materie -->
+  <symbol id="i-m-mate" viewBox="0 0 24 24"><path d="M18 5H6l6 7-6 7h12"/></symbol>
+  <symbol id="i-m-lettere" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 4.5v13c3.5 0 6.5.5 8.5 2 2-1.5 5-2 8.5-2v-13c-3.5 0-6.5.5-8.5 2z"/><path d="M12 6.5v13"/></symbol>
+  <symbol id="i-m-lingue" viewBox="0 0 24 24"><path d="M3.5 4.5h10v7h-6l-3 3v-3h-1z"/><path d="M13.5 8.5h7v7h-1v3l-3-3h-5v-4"/></symbol>
+  <symbol id="i-m-storia" viewBox="0 0 24 24"><path d="M3 21h18M4 10h16M12 3l8 4H4z"/><path d="M6 10v8M10 10v8M14 10v8M18 10v8"/></symbol>
+  <symbol id="i-m-geo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.6 5.5 3.6 9s-1.1 6.5-3.6 9c-2.5-2.5-3.6-5.5-3.6-9S9.5 5.5 12 3z"/></symbol>
+  <symbol id="i-m-scienze" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5l-5 8.5a2 2 0 0 0 1.7 3h10.6a2 2 0 0 0 1.7-3l-5-8.5V3"/><path d="M7.3 15h9.4"/></symbol>
+  <symbol id="i-m-fisica" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.6"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(120 12 12)"/></symbol>
+  <symbol id="i-m-info" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4M9.5 8 7.5 10l2 2M14.5 8l2 2-2 2"/></symbol>
+  <symbol id="i-m-arte" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.7-.8 1.7-1.7 0-.4-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5C21 6.4 17 3 12 3z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/></symbol>
+  <symbol id="i-m-musica" viewBox="0 0 24 24"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
+  <symbol id="i-m-sport" viewBox="0 0 24 24"><path d="M6.5 7v10M3 9.5v5M17.5 7v10M21 9.5v5M6.5 12h11"/></symbol>
+  <symbol id="i-m-classici" viewBox="0 0 24 24"><path d="M7 4h11a2 2 0 0 1 2 2v1h-4M7 4a2 2 0 0 0-2 2v12a2 2 0 0 1-2 2h11a2 2 0 0 0 2-2V7"/><path d="M8.5 9h4M8.5 13h4"/></symbol>
+  <symbol id="i-m-diritto" viewBox="0 0 24 24"><path d="M12 3v18M7.5 21h9M4.5 7h15"/><path d="M4.5 7 2 13a2.6 2.6 0 0 0 5 0zM19.5 7 17 13a2.6 2.6 0 0 0 5 0z"/></symbol>
+  <symbol id="i-m-tecno" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></symbol>
+  <symbol id="i-m-libro" viewBox="0 0 24 24"><path d="M5 19.5V5a2 2 0 0 1 2-2h12v15H7a2 2 0 0 0-2 2 2 2 0 0 0 2 2h12"/></symbol>
+
+  <!-- Zaino, la mascotte: un corpo comune e sei pose. I colori vengono da --zm-* (style.css), così segue ogni tema. -->
+  <symbol id="z-corpo" viewBox="0 0 120 120">
+    <ellipse cx="60" cy="112" rx="32" ry="4" fill="var(--zm-occhi)" opacity=".12"/>
+    <path d="M51 28v-4a9 9 0 0 1 18 0v4" fill="none" stroke="var(--zm-scuro)" stroke-width="4.5" stroke-linecap="round"/>
+    <rect x="25" y="26" width="70" height="82" rx="25" fill="var(--zm-corpo)"/>
+    <rect x="21" y="62" width="9" height="30" rx="4.5" fill="var(--zm-scuro)"/>
+    <rect x="90" y="62" width="9" height="30" rx="4.5" fill="var(--zm-scuro)"/>
+    <path d="M25 51a25 25 0 0 1 25-25h20a25 25 0 0 1 25 25v1.5c-11 7.5-59 7.5-70 0z" fill="var(--zm-scuro)"/>
+    <circle cx="60" cy="56" r="3.6" fill="var(--zm-tasca)"/>
+    <ellipse cx="60" cy="75" rx="24" ry="13" fill="var(--zm-viso)"/>
+    <rect x="38" y="90" width="44" height="13" rx="6.5" fill="var(--zm-tasca)"/>
+    <path d="M46 96.5h28" stroke="var(--zm-scuro)" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 3"/>
+    <circle cx="43" cy="80" r="3.4" fill="var(--zm-guance)" opacity=".75"/>
+    <circle cx="77" cy="80" r="3.4" fill="var(--zm-guance)" opacity=".75"/>
+  </symbol>
+  <!-- felice: tutto fatto -->
+  <symbol id="z-felice" viewBox="0 0 120 120">
+    <path d="M27 76c-8 2-12 8-12 15M93 76c8 2 12 8 12 15" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <use href="#z-corpo"/>
+    <path d="M45 73q4.5-6 9 0M66 73q4.5-6 9 0" fill="none" stroke="var(--zm-occhi)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M52 78q8 8 16 0" fill="none" stroke="var(--zm-occhi)" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+  <!-- dorme: niente lezioni, giorno libero -->
+  <symbol id="z-dorme" viewBox="0 0 120 120">
+    <path d="M27 78c-8 3-11 9-11 16M93 78c8 3 11 9 11 16" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <use href="#z-corpo"/>
+    <path d="M45 73q4.5 4 9 0M66 73q4.5 4 9 0" fill="none" stroke="var(--zm-occhi)" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="60" cy="81" rx="3" ry="2.4" fill="var(--zm-occhi)"/>
+    <path d="M90 12h9l-9 10h9M102 2h6l-6 7h6" fill="none" stroke="var(--zm-scuro)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <!-- festa: niente verifiche in vista -->
+  <symbol id="z-festa" viewBox="0 0 120 120">
+    <path d="M27 70c-8-3-12-11-12-19M93 70c8-3 12-11 12-19" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <use href="#z-corpo"/>
+    <path d="M45 73q4.5-6 9 0M66 73q4.5-6 9 0" fill="none" stroke="var(--zm-occhi)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M51 77h18q-1 9-9 9t-9-9z" fill="var(--zm-occhi)"/>
+    <rect x="8" y="22" width="6" height="6" rx="1.5" fill="var(--zm-extra)" transform="rotate(20 11 25)"/>
+    <rect x="104" y="26" width="6" height="6" rx="1.5" fill="var(--zm-tasca)" transform="rotate(-25 107 29)"/>
+    <circle cx="20" cy="10" r="3" fill="var(--zm-tasca)"/><circle cx="98" cy="8" r="3" fill="var(--zm-extra)"/>
+    <path d="M31 6l2 6M88 18l5-3" stroke="var(--zm-scuro)" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
+  <!-- pensa: niente dati ancora -->
+  <symbol id="z-pensa" viewBox="0 0 120 120">
+    <path d="M27 78c-8 3-11 9-11 16" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M93 76c9-2 11-10 6-15" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <use href="#z-corpo"/>
+    <circle cx="50" cy="71" r="4.2" fill="var(--zm-occhi)"/><circle cx="71" cy="71" r="4.2" fill="var(--zm-occhi)"/>
+    <circle cx="51.5" cy="69.5" r="1.4" fill="#fff"/><circle cx="72.5" cy="69.5" r="1.4" fill="#fff"/>
+    <path d="M54 81.5q6-2.5 12 0" fill="none" stroke="var(--zm-occhi)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="98" cy="22" r="2.5" fill="var(--zm-tasca)"/><circle cx="104" cy="14" r="3.5" fill="var(--zm-tasca)"/>
+    <path d="M105 2.5a4 4 0 1 1 3.5 6c-1 .5-1.5 1.2-1.5 2.5" fill="none" stroke="var(--zm-scuro)" stroke-width="2.5" stroke-linecap="round" transform="translate(-6 0)"/>
+  </symbol>
+  <!-- cerca: la ricerca non ha trovato niente -->
+  <symbol id="z-cerca" viewBox="0 0 120 120">
+    <path d="M27 78c-8 3-11 9-11 16" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M93 78c6 0 9-3 11-7" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <use href="#z-corpo"/>
+    <circle cx="53" cy="72" r="4.2" fill="var(--zm-occhi)"/><circle cx="74" cy="72" r="4.2" fill="var(--zm-occhi)"/>
+    <circle cx="54.5" cy="70.5" r="1.4" fill="#fff"/><circle cx="75.5" cy="70.5" r="1.4" fill="#fff"/>
+    <ellipse cx="62" cy="82" rx="3" ry="2.6" fill="var(--zm-occhi)"/>
+    <circle cx="106" cy="60" r="9" fill="var(--zm-viso)" fill-opacity=".6" stroke="var(--zm-scuro)" stroke-width="4"/>
+    <path d="M102 68l-3 5" stroke="var(--zm-scuro)" stroke-width="5" stroke-linecap="round"/>
+  </symbol>
+  <!-- saluta: la pagina dei profili -->
+  <symbol id="z-saluta" viewBox="0 0 120 120">
+    <path d="M27 78c-8 3-11 9-11 16" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <path d="M93 72c8-3 12-11 12-20" fill="none" stroke="var(--zm-scuro)" stroke-width="6" stroke-linecap="round"/>
+    <use href="#z-corpo"/>
+    <circle cx="50" cy="72" r="4.2" fill="var(--zm-occhi)"/><circle cx="71" cy="72" r="4.2" fill="var(--zm-occhi)"/>
+    <circle cx="51.5" cy="70.5" r="1.4" fill="#fff"/><circle cx="72.5" cy="70.5" r="1.4" fill="#fff"/>
+    <path d="M52 78q8 7 16 0" fill="none" stroke="var(--zm-occhi)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M110 40q4 4 2 9M114 36q6 6 3 14" fill="none" stroke="var(--zm-tasca)" stroke-width="2.5" stroke-linecap="round"/>
+  </symbol>
 </svg>
 <main>
   <header class="top">
@@ -26,9 +146,10 @@
       <p class="sub" id="aggiornato">Caricamento…</p>
     </div>
     <div class="azioni">
+      <button id="stringi-menu" class="btn ghost solo-icona" type="button" hidden aria-pressed="false" aria-label="Riduci il menu" title="Riduci il menu"><svg class="ico" aria-hidden="true"><use href="#i-pannello"/></svg></button>
       <label class="scegli-tema"><span class="sr">Tema</span><select id="tema" aria-label="Tema"></select></label>
-      <button id="apri-profili" class="btn ghost" type="button" hidden>Profili</button>
-      <button id="aggiorna" class="btn" type="button" hidden>Aggiorna</button>
+      <button id="apri-profili" class="btn ghost" type="button" hidden><svg class="ico" aria-hidden="true"><use href="#i-profili"/></svg><span>Profili</span></button>
+      <button id="aggiorna" class="btn" type="button" hidden><svg class="ico" aria-hidden="true"><use href="#i-aggiorna"/></svg><span>Aggiorna</span></button>
     </div>
   </header>
 

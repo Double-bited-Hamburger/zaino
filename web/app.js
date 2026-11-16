@@ -202,7 +202,7 @@ function aulaPromemoria(p) {
 }
 
 function tabellaPromemoria(lista) {
-  if (!lista.length) return '<div class="box"><div class="empty">Niente in programma.</div></div>';
+  if (!lista.length) return vuotoBox("festa", "Niente in programma.");
   const righe = lista.map((p) => {
     const urgente = giorniDa(p.data) <= 2 ? ` <span class="tag">${quando(p.data)}</span>` : "";
     const aula = aulaPromemoria(p);
@@ -214,7 +214,7 @@ function tabellaPromemoria(lista) {
 
 function listaCompiti(lista, vuoto, testa = "") {
   if (nascondiFatti) lista = lista.filter((c) => !fatti.has(c.id));
-  if (!lista.length) return `<div class="box"><div class="empty">${vuoto}</div></div>`;
+  if (!lista.length) return vuotoBox("felice", vuoto);
   const perGiorno = new Map();
   lista.forEach((c) => perGiorno.set(c.consegna, [...(perGiorno.get(c.consegna) || []), c]));
   let html = "";
@@ -223,16 +223,16 @@ function listaCompiti(lista, vuoto, testa = "") {
     html += `<div class="day${scaduto ? " scaduto" : ""}">Per ${dataLunga(data)} <span class="muted">· ${quando(data)}</span></div><ul class="todo">`;
     html += compiti.map((c) => `<li class="${fatti.has(c.id) ? "fatto" : ""}"><label>
       <input type="checkbox" data-id="${c.id}" ${fatti.has(c.id) ? "checked" : ""}>
-      <span>${puntoNuovo(nuovo("compiti", c.id))}<strong>${esc(c.materia)}</strong> — ${esc(c.testo)}</span></label></li>`).join("");
+      <span>${puntoNuovo(nuovo("compiti", c.id))}${icoMateria(c.materia)}<strong>${esc(c.materia)}</strong> — ${esc(c.testo)}</span></label></li>`).join("");
     html += "</ul>";
   });
   return `<div class="box">${testa}${html}</div>`;
 }
 
 function listaConsigli(voci) {
-  if (!voci.length) return '<div class="box"><div class="empty">Nessun punto critico al momento.</div></div>';
-  const icona = { critico: "!", attenzione: "!", info: "i" };
-  return `<div class="box"><ul class="consigli">${voci.map((v) => `<li class="${v.livello}"><span class="icona" aria-hidden="true">${icona[v.livello]}</span>
+  if (!voci.length) return vuotoBox("felice", "Nessun punto critico al momento.");
+  const icona = { critico: "avviso", attenzione: "avviso", info: "lampadina" };
+  return `<div class="box"><ul class="consigli">${voci.map((v) => `<li class="${v.livello}"><span class="icona" aria-hidden="true">${ico(icona[v.livello] || "lampadina")}</span>
     <div><strong>${esc(v.titolo)}</strong><div class="muted">${esc(v.testo)}</div></div></li>`).join("")}</ul></div>`;
 }
 
@@ -241,9 +241,28 @@ const temaNothing = () => document.documentElement.dataset.tema === "nothing";
 const aPunti = (testo, passo) => `<span class="a-punti" role="img" aria-label="${esc(testo)}">${puntini(testo, passo)}</span>`;
 const grande = (testo, passo = 3) => (temaNothing() ? aPunti(testo, passo) : esc(testo));
 
-const tessera = (valore, etichetta, classe = "", sotto = "") => {
+// Un'icona dello sprite di index.html (i nomi sono gli id senza «i-»).
+const ico = (nome, classe = "") => `<svg class="ico${classe ? " " + classe : ""}" aria-hidden="true"><use href="#i-${nome}"/></svg>`;
+
+// L'icona di una materia, dal nome: le parole più specifiche prima («Scienze motorie» è sport, non scienze).
+const ICONE_MATERIE = [
+  [/motori|sport|ed(ucazione)?\.? ?fis/, "m-sport"], [/\barte\b|disegn|grafic/, "m-arte"], [/matem|algebr|geometr/, "m-mate"],
+  [/fisic/, "m-fisica"], [/inform|tic\b|coding/, "m-info"], [/scien|biolog|chimic|natur/, "m-scienze"], [/geo/, "m-geo"],
+  [/stor/, "m-storia"], [/ital|letter/, "m-lettere"], [/ingl|franc|spagn|tedes|lingu|english/, "m-lingue"], [/latin|grec/, "m-classici"],
+  [/filos|pedagog|psicolog|scienze umane/, "lampadina"], [/diritt|econom|civic/, "m-diritto"], [/tecnolog|tecnic|laborat|meccan|elettr/, "m-tecno"],
+  [/music|strument|canto/, "m-musica"], [/relig|irc\b|alternativ/, "stelline"],
+];
+const iconaMateria = (materia) => { const m = piega(materia); return (ICONE_MATERIE.find(([re]) => re.test(m)) || [, "m-libro"])[1]; };
+const icoMateria = (materia) => `<svg class="ico ico-m" style="--tinta:${tintaMateria(materia)}" aria-hidden="true"><use href="#i-${iconaMateria(materia)}"/></svg>`;
+
+// Uno stato vuoto con Zaino, la mascotte. Pose: felice, dorme, festa, pensa, cerca, saluta.
+const mascotte = (posa) => `<svg class="mascotte" viewBox="0 0 120 120" aria-hidden="true"><use href="#z-${posa}"/></svg>`;
+const vuoto = (posa, testo, azione = "", grande = false) => `<div class="empty vuoto${grande ? " grande" : ""}">${mascotte(posa)}<div class="vuoto-testo">${testo}${azione}</div></div>`;
+const vuotoBox = (posa, testo, azione = "") => `<div class="box">${vuoto(posa, testo, azione)}</div>`;
+
+const tessera = (valore, etichetta, classe = "", sotto = "", icona = "") => {
   const v = String(valore);
-  return `<div class="card"><b class="${classe}">${temaNothing() && v.length <= 7 && !/[<&]/.test(v) ? aPunti(v, 4) : v}</b><span>${etichetta}</span>${sotto}</div>`;
+  return `<div class="card${icona ? " con-ico" : ""}">${icona ? `<span class="card-ico${classe === "bad" ? " bad" : ""}">${ico(icona)}</span>` : ""}<b class="${classe}">${temaNothing() && v.length <= 7 && !/[<&]/.test(v) ? aPunti(v, 4) : v}</b><span>${etichetta}</span>${sotto}</div>`;
 };
 
 // Barra di avanzamento sottile; «barraTacche» è divisa in pezzi [peso, "si" | "ora" | ""] (uno per passo, o per 5 minuti di lezione).
@@ -399,7 +418,7 @@ function vistaEditorOrario() {
         <label><span>Aula</span><input data-campo="aula" value="${esc(o.aula)}" maxlength="40"></label>
         <label><span>Docente</span><input data-campo="docente" value="${esc(o.docente)}" maxlength="40"></label>
         <button type="button" class="btn ghost small" data-togli-ora="${i}" aria-label="Togli quest'ora">Togli</button></div>`).join("") : '<p class="muted">Nessuna lezione.</p>'}
-      <div class="segmenti"><button type="button" class="btn ghost small" data-aggiungi-ora="${g}">+ Aggiungi un'ora</button>
+      <div class="segmenti"><button type="button" class="btn ghost small" data-aggiungi-ora="${g}">${ico("piu")}Aggiungi un'ora</button>
         ${g > 0 && editorOrario.some((o) => o.giorno === g - 1) ? `<button type="button" class="btn ghost small" data-copia-giorno="${g - 1}|${g}">Come ${GIORNI_SCUOLA[g - 1].toLowerCase()}</button>` : ""}</div></div>`;
   };
   return `<div id="editor-orario">
@@ -429,12 +448,12 @@ async function dividiOra(chiave, materia) {
 function schedaOrario() {
   if (editorOrario) return vistaEditorOrario();
   const o = D.orario;
-  if (!o) return `<div class="box" style="margin-top:20px"><div class="empty">${D.profilo && !D.profilo.untis
-    ? `Questo profilo non ha l'orario WebUntis.<br>Puoi scrivere il tuo orario a mano: basta farlo una volta.
-      <div class="segmenti" style="justify-content:center;margin-top:12px"><button type="button" class="btn" data-orario-azione="apri">Scrivi il tuo orario</button></div>
-      <p class="note">Se la scuola usa WebUntis, puoi invece aggiungerlo da Profili → Modifica.</p>`
-    : "Orario non ancora scaricato: premi «Aggiorna»."}</div></div>`;
-  if (!o.settimane.length) return '<div class="box" style="margin-top:20px"><div class="empty">Nessuna lezione in orario per questa settimana e la prossima (vacanze?).</div></div>';
+  if (!o) return `<div class="box" style="margin-top:20px">${D.profilo && !D.profilo.untis
+    ? vuoto("pensa", "Questo profilo non ha l'orario WebUntis.<br>Puoi scrivere il tuo orario a mano: basta farlo una volta.",
+      `<div class="segmenti"><button type="button" class="btn" data-orario-azione="apri">${ico("matita")}Scrivi il tuo orario</button></div>
+      <p class="note">Se la scuola usa WebUntis, puoi invece aggiungerlo da Profili → Modifica.</p>`, true)
+    : vuoto("pensa", "Orario non ancora scaricato: premi «Aggiorna».", "", true)}</div>`;
+  if (!o.settimane.length) return `<div class="box" style="margin-top:20px">${vuoto("dorme", "Nessuna lezione in orario per questa settimana e la prossima (vacanze?).", "", true)}</div>`;
   settimanaOrario = Math.min(settimanaOrario, o.settimane.length - 1);
   const s = o.settimane[settimanaOrario];
   const lezioni = o.lezioni.filter((l) => l.data >= s.inizio && l.data <= s.fine);
@@ -458,7 +477,7 @@ function schedaOrario() {
     const qui = scelta ? lezioni.filter((l) => `${l.data}|${l.inizio}` === scelta) : [];
     if (!qui.length) return '<p class="cella-dettaglio vuoto muted">Tocca un\'ora per vedere aula, docente e variazioni.</p>';
     return qui.map((l) => `<div class="cella-dettaglio" style="--tinta:${tintaMateria(l.materia)}"><div>
-      <strong>${esc(l.materia)}</strong>${inCorso(l) ? ' <span class="tag accento">adesso</span>' : ""}${l.variazione ? ` <span class="tag${l.stato === "annullata" || l.nuova ? " bad" : ""}">${esc(l.stato)}</span>` : ""}
+      ${icoMateria(l.materia)}<strong>${esc(l.materia)}</strong>${inCorso(l) ? ' <span class="tag accento">adesso</span>' : ""}${l.variazione ? ` <span class="tag${l.stato === "annullata" || l.nuova ? " bad" : ""}">${esc(l.stato)}</span>` : ""}
       <div class="muted">${dataLunga(l.data).replace(/^./, (c) => c.toUpperCase())} · ${l.inizio}–${l.fine}${dettagliLezione(l) ? " · " + dettagliLezione(l) : ""}${l.variazione && dettagliVariazione(l) ? " · " + dettagliVariazione(l) : ""}</div>${sceltaDivisione(l)}</div></div>`).join("");
   };
   const t = new Date(o.scaricato);
@@ -469,12 +488,12 @@ function schedaOrario() {
   return `<div class="barra-azioni">
       <div class="segmenti" role="group" aria-label="Settimana">${o.settimane.map((x, i) => `<button type="button" class="btn small${i === settimanaOrario ? "" : " ghost"}" data-settimana="${i}">${i === 0 ? "Questa settimana" : i === 1 ? "Prossima" : "Dal " + dataBreve(x.inizio)}</button>`).join("")}</div>
       <div class="segmenti">${manuale ? `<button type="button" class="btn ghost small" data-orario-azione="apri">Modifica l'orario</button>` : ""}
-        <a class="btn ghost small" href="/api/pdf?settimana=${settimanaOrario}" target="_blank" rel="noopener">Scarica PDF</a></div>
+        <a class="btn ghost small" href="/api/pdf?settimana=${settimanaOrario}" target="_blank" rel="noopener">${ico("scarica")}Scarica PDF</a></div>
     </div>
     <p class="sub" style="margin:0 0 12px">Dal ${dataBreve(s.inizio)} al ${dataBreve(s.fine)}${manuale ? "" : ` · ${variazioni.length ? plurale(variazioni.length, "variazione", "variazioni") : "nessuna variazione"}`} · ${fonte}</p>
     ${doppie ? `<p class="note" style="margin:-4px 0 12px">Alcune ore mettono insieme due materie: tocca l'ora e scegli quale è davvero, così la griglia, la scheda Oggi e il PDF tornano giusti.</p>` : ""}
     <div class="orario-layout"><div>
-      ${titolo("La settimana", "tocca un'ora per i dettagli")}
+      ${titolo("La settimana", "tocca un'ora per i dettagli", "agenda")}
       <div class="box pad"><div class="griglia-orario" style="--giorni:${s.giorni.length}">
         <span></span>${s.giorni.map((g) => `<span class="testa-giorno${g === D.oggi ? " oggi" : ""}">${GIORNI[giorno(g).getDay()].slice(0, 3)}<b>${giorno(g).getDate()}</b></span>`).join("")}
         ${s.fasce.map(([inizio, fine]) => `<span class="ora-fascia${s.giorni.includes(D.oggi) && inizio <= adesso && adesso < fine ? " ora" : ""}"><b>${inizio}</b><small>${fine}</small><i>${inizio.slice(0, 2)}</i></span>${s.giorni.map((g) => cella(g, inizio)).join("")}`).join("")}
@@ -482,9 +501,9 @@ function schedaOrario() {
       ${dettaglio()}
       <div class="legenda-orario"><span class="l-ora">adesso</span><span class="l-var">variazione</span><span class="l-ann">annullata</span></div></div>
     </div><div>
-      ${manuale ? `${titolo("Variazioni")}<div class="box"><div class="empty">L'orario scritto a mano non ha supplenze né ore annullate: quelle arrivano solo da WebUntis.</div></div>` : `
-      ${titolo("Cosa cambia", variazioni.length ? plurale(variazioni.length, "variazione", "variazioni") : "")}
-      ${variazioni.length ? `<ul class="cambi">${variazioni.map(cartaVariazione).join("")}</ul>` : '<div class="box"><div class="empty">Nessuna variazione questa settimana.</div></div>'}`}
+      ${manuale ? `${titolo("Variazioni", "", "avviso")}${vuotoBox("pensa", "L'orario scritto a mano non ha supplenze né ore annullate: quelle arrivano solo da WebUntis.")}` : `
+      ${titolo("Cosa cambia", variazioni.length ? plurale(variazioni.length, "variazione", "variazioni") : "", "avviso")}
+      ${variazioni.length ? `<ul class="cambi">${variazioni.map(cartaVariazione).join("")}</ul>` : vuotoBox("felice", "Nessuna variazione questa settimana.")}`}
       <p class="note">Le lezioni in parallelo che non ti riguardano si nascondono da config.py (ORARIO_NASCONDI). Un docente indicato con una sigla è un supplente che non compare nel tuo registro.</p>
     </div></div>`;
 }
@@ -531,10 +550,10 @@ function giornoScelto(impegni, iso = giornoAgenda) {
     ...x.promemoria.map((p) => riga("p", `<strong>${esc(p.materia) || "Promemoria"}</strong>`, [esc(p.testo), esc(p.orario)].filter(Boolean).join(" · "))),
   ].join("");
   const compiti = x.compiti.map((c) => `<li class="${fatti.has(c.id) ? "fatto" : ""}"><label><input type="checkbox" data-id="${c.id}" ${fatti.has(c.id) ? "checked" : ""}>
-    <span>${puntoNuovo(nuovo("compiti", c.id))}<strong>${esc(c.materia)}</strong> — ${esc(c.testo)}</span></label></li>`).join("");
+    <span>${puntoNuovo(nuovo("compiti", c.id))}${icoMateria(c.materia)}<strong>${esc(c.materia)}</strong> — ${esc(c.testo)}</span></label></li>`).join("");
   const testa = dataLunga(iso).replace(/^./, (c) => c.toUpperCase());
-  return `${titolo(testa, quando(iso))}<div class="box giorno-scelto">${eventi || compiti
-    ? `${eventi ? `<ul class="eventi">${eventi}</ul>` : ""}${compiti ? `<ul class="todo">${compiti}</ul>` : ""}` : '<div class="empty">Niente in programma per questo giorno.</div>'}</div>`;
+  return `${titolo(testa, quando(iso), "agenda")}<div class="box giorno-scelto">${eventi || compiti
+    ? `${eventi ? `<ul class="eventi">${eventi}</ul>` : ""}${compiti ? `<ul class="todo">${compiti}</ul>` : ""}` : vuoto("dorme", "Niente in programma per questo giorno.")}</div>`;
 }
 
 function schedaAgenda() {
@@ -547,13 +566,13 @@ function schedaAgenda() {
   const impegni = impegniPerGiorno();
   // Sul PC il calendario a sinistra e il giorno scelto a destra; sul telefono uno sotto l'altro. Gli elenchi completi restano, chiusi, in fondo.
   return `<div class="cards">
-      ${tessera(verifiche.length, "verifiche in arrivo")}
-      ${tessera(daFare, "compiti da fare")}
-      ${tessera(variazioni.length, "variazioni d'orario")}
-      ${tessera(media(D.media_generale), "media generale")}
+      ${tessera(verifiche.length, "verifiche in arrivo", "", "", "bandiera")}
+      ${tessera(daFare, "compiti da fare", "", "", "compiti")}
+      ${tessera(variazioni.length, "variazioni d'orario", "", "", "avviso")}
+      ${tessera(media(D.media_generale), "media generale", "", "", "media")}
     </div>
     <div class="agenda-griglia"><div class="agenda-colonna">${calendarioMese(impegni)}</div>
-      <div class="agenda-colonna">${giornoScelto(impegni)}${urgenti.length ? `${titolo("Da tenere d'occhio")}${listaConsigli(urgenti)}` : ""}</div></div>
+      <div class="agenda-colonna agenda-destra"><div>${giornoScelto(impegni)}</div>${urgenti.length ? `<div>${titolo("Da tenere d'occhio", "", "avviso")}${listaConsigli(urgenti)}</div>` : ""}</div></div>
     <div class="sezioni">
       ${sezione("a-verifiche", "Tutte le verifiche in arrivo", verifiche.length, tabellaPromemoria(verifiche))}
       ${sezione("a-compiti", "Tutti i compiti da fare", daFare, listaCompiti(futuri, "Nessun compito da fare."))}
@@ -606,10 +625,10 @@ function mappaCompiti() {
   const giorniNomi = ["Lun", "", "Mer", "", "Ven", "", ""].map((n) => `<span>${n}</span>`).join("");
   const legendaMappa = `<div class="heat-legenda">Niente <i class="leg-nessuno"></i>${[0.25, 0.5, 0.75, 1].map((q) => `<i style="background:${coloreGiorno(q)}"></i>`).join("")} Tutto fatto
     <span style="margin-left:12px"><i style="border:1px dashed var(--axis)"></i> da consegnare</span></div>`;
-  return `<h2>Il tuo andamento</h2>
+  return `<h2>${ico("su")}Il tuo andamento</h2>
     <div class="cards" style="margin-top:0">
-      ${tessera(quotaTot == null ? "–" : quotaTot + "%", "compiti fatti, tra quelli già in scadenza")}
-      ${tessera(serie, "giorni di fila con tutto fatto", serie ? "ok" : "")}
+      ${tessera(quotaTot == null ? "–" : quotaTot + "%", "compiti fatti, tra quelli già in scadenza", "", "", "spunta")}
+      ${tessera(serie, "giorni di fila con tutto fatto", serie ? "ok" : "", "", "festa")}
     </div>
     <div class="box pad" style="margin-top:12px"><p class="chart-title">Compiti fatti, giorno per giorno</p>
       <p class="chart-sub">Ogni casella è un giorno di consegna: colore pieno se hai spuntato tutto, sempre più chiaro se ne salti. ${temaNothing() ? "Rosso" : "Grigio"} = nessuno fatto.</p>
@@ -642,8 +661,8 @@ function settimanaCompiti() {
         <span>${GIORNI_BREVI[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b><span class="sett-punti">${compiti.slice(0, 4).map((c) => `<i class="${fatti.has(c.id) ? "fatto" : ""}"></i>`).join("")}</span></button>
       <div class="sett-corpo"><p class="sett-titolo">${nome} <span class="muted">· ${quando(g)}</span></p>
         ${lista.length ? `<ul class="todo sett-lista">${lista.map((c) => `<li class="${fatti.has(c.id) ? "fatto" : ""}"><label><input type="checkbox" data-id="${c.id}" ${fatti.has(c.id) ? "checked" : ""}>
-          <span>${puntoNuovo(nuovo("compiti", c.id))}<strong>${esc(c.materia)}</strong> <span class="sett-testo">${esc(c.testo)}</span></span></label></li>`).join("")}</ul>`
-          : `<p class="sett-vuoto muted">${compiti.length ? "Tutto fatto ✓" : "Libero 🎉"}</p>`}</div></div>`;
+          <span>${puntoNuovo(nuovo("compiti", c.id))}${icoMateria(c.materia)}<strong>${esc(c.materia)}</strong> <span class="sett-testo">${esc(c.testo)}</span></span></label></li>`).join("")}</ul>`
+          : `<p class="sett-vuoto muted">${compiti.length ? `${ico("spunta")} Tutto fatto` : `${ico("festa")} Libero`}</p>`}</div></div>`;
   }).join("");
   return `<h2 class="con-destra">Settimana ${intervallo}<span class="h2-destra mesi"><button type="button" class="link" data-sett-compiti="-1" aria-label="Settimana precedente">‹</button>
       <button type="button" class="link" data-sett-compiti="0">questa</button><button type="button" class="link" data-sett-compiti="1" aria-label="Settimana seguente">›</button></span></h2>
@@ -661,11 +680,13 @@ function schedaCompiti() {
       <div style="flex:1;min-width:220px"><strong>Fatti ${nFatti} su ${futuri.length}</strong> <span class="muted">tra quelli da consegnare</span>
         <div class="progresso"><i style="width:${futuri.length ? (nFatti / futuri.length) * 100 : 0}%"></i></div></div>
       <label><input type="checkbox" id="nascondi" ${nascondiFatti ? "checked" : ""}> Nascondi i fatti</label>
-      <a class="btn ghost small" href="/api/esporta-compiti" target="_blank" rel="noopener">Scarica tutti i compiti (PDF)</a>
+      <a class="btn ghost small" href="/api/esporta-compiti" target="_blank" rel="noopener">${ico("scarica")}Scarica tutti i compiti (PDF)</a>
     </div>
     ${settimanaCompiti()}
-    ${nonFatti ? `<h2>Scaduti negli ultimi giorni <span class="tag bad">${nonFatti} non spuntati</span></h2>${listaCompiti(scaduti.slice().reverse(), "Nessun arretrato.")}` : ""}
-    ${mappaCompiti()}
+    <div class="compiti-sotto">
+      ${nonFatti ? `<div><h2>${ico("avviso")}Scaduti negli ultimi giorni <span class="tag bad">${nonFatti} non spuntati</span></h2>${listaCompiti(scaduti.slice().reverse(), "Nessun arretrato.")}</div>` : ""}
+      ${D.compiti_anno && D.compiti_anno.length ? `<div>${mappaCompiti()}</div>` : ""}
+    </div>
     <div class="sezioni">
       ${sezione("c-futuri", "Tutti i compiti da fare", futuri.length - nFatti, listaCompiti(futuri, nascondiFatti && futuri.length ? "Tutto fatto!" : "Nessun compito da fare."))}
       ${scaduti.length && !nonFatti ? sezione("c-scaduti", "Scaduti negli ultimi giorni", scaduti.length, listaCompiti(scaduti.slice().reverse(), "Nessun compito scaduto di recente.")) : ""}
@@ -711,7 +732,7 @@ function simulatore() {
   let frase = "";
   if (simVoto != null && ora != null && poi != null) {
     const nome = esc(simMateria), voto = num(simVoto);
-    frase = ora < D.sufficienza && poi >= D.sufficienza ? `<p class="ok">✓ Con un ${voto} ${nome} torna al 6.</p>`
+    frase = ora < D.sufficienza && poi >= D.sufficienza ? `<p class="ok">${ico("spunta")} Con un ${voto} ${nome} torna al 6.</p>`
       : ora >= D.sufficienza && poi < D.sufficienza ? `<p class="bad">Attenzione: con un ${voto} ${nome} scende sotto il 6.</p>`
       : `<p class="muted">Con un ${voto} ${nome} passa da ${media(ora)} a ${media(poi)}.</p>`;
   }
@@ -724,8 +745,8 @@ function simulatore() {
       <label class="sim-altro"><span class="sr">Altro voto, anche con i decimali</span><input id="sim-voto" type="number" min="1" max="10" step="0.25" placeholder="altro" value="${altro}"></label></div>
     ${simVoto == null && !simulati.length ? '<p class="note">Tocca un voto per vedere come cambierebbero le medie. Non modifica nulla sul registro.</p>'
       : `<div class="sim-esito">${riquadro(esc(simMateria), ora, poi)}${riquadro("Media generale", generale(base), generale(dopo))}</div>${frase}`}
-    ${simulati.length ? `<div class="chips">${simulati.map((x, i) => `<span class="chip">${esc(x.materia)}: <strong>${num(x.voto)}</strong><button type="button" data-togli="${i}" aria-label="Togli">✕</button></span>`).join("")}</div>` : ""}
-    <div class="sim-azioni">${simVoto != null ? '<button class="btn ghost small" id="sim-aggiungi" type="button">+ Aggiungi e prova un altro voto</button>' : ""}
+    ${simulati.length ? `<div class="chips">${simulati.map((x, i) => `<span class="chip">${esc(x.materia)}: <strong>${num(x.voto)}</strong><button type="button" data-togli="${i}" aria-label="Togli">${ico("x")}</button></span>`).join("")}</div>` : ""}
+    <div class="sim-azioni">${simVoto != null ? `<button class="btn ghost small" id="sim-aggiungi" type="button">${ico("piu")}Aggiungi e prova un altro voto</button>` : ""}
       ${simulati.length || simVoto != null ? '<button class="btn ghost small" id="sim-azzera" type="button">Azzera</button>' : ""}</div>
     <p class="note">In ${esc(simMateria)}, alla prova successiva${simulati.length ? " (dopo quelli aggiunti)" : ""}: per avere 6 → ${serve(6)} · 7 → ${serve(7)} · 8 → ${serve(8)}.</p>
   </div>`;
@@ -744,7 +765,7 @@ function votiAPunti(lista) {
   }).join("")}</div>`;
 }
 
-const ANDAMENTO = { su: ["▲", "in salita", "ok"], giu: ["▼", "in calo", "bad"], stabile: ["=", "stabile", "neutro"] };
+const ANDAMENTO = { su: ["su", "in salita", "ok"], giu: ["giu", "in calo", "bad"], stabile: ["stabile", "stabile", "neutro"] };
 
 // Mini-grafico degli ultimi voti di una materia: linea tratteggiata sul 6, punti rossi sotto.
 // Si allarga alla scheda (preserveAspectRatio="none"); i punti sono tratti di lunghezza zero con le estremità tonde, così restano rotondi.
@@ -761,23 +782,23 @@ function sparkVoti(materia) {
 
 // Una scheda per materia: tutto quello che c'era nella vecchia tabella, leggibile anche sul telefono.
 function schedaMateria(s) {
-  const [freccia, parola, classe] = ANDAMENTO[s.andamento] || ["·", "pochi voti", "neutro"];
+  const [freccia, parola, classe] = ANDAMENTO[s.andamento] || ["", "pochi voti", "neutro"];
   const tipi = [["Scritto", s.media_scritto], ["Orale", s.media_orale], ["Pratico", s.media_pratico]].filter(([, v]) => v != null);
   const valore = media(s.media);
   return `<div class="materia${s.insufficiente ? " insuff" : ""}">
-    <div class="materia-testa"><strong>${esc(s.materia)}</strong><span class="tag ${classe}" title="Gli ultimi 3 voti confrontati con i precedenti">${freccia} ${parola}</span></div>
+    <div class="materia-testa"><strong>${icoMateria(s.materia)}${esc(s.materia)}</strong><span class="tag ${classe}" title="Gli ultimi 3 voti confrontati con i precedenti">${freccia ? ico(freccia) + " " : ""}${parola}</span></div>
     <div class="materia-media"><div><b class="${s.insufficiente ? "bad" : ""}">${temaNothing() ? aPunti(valore, 4) : valore}</b><span>${plurale(s.numero, "voto", "voti")}</span></div>${sparkVoti(s.materia)}</div>
     ${tipi.length ? `<div class="materia-tipi">${tipi.map(([n, v]) => `<span>${n} <strong>${media(v)}</strong></span>`).join("")}</div>` : ""}
     <p class="muted materia-estremi">min ${num(s.minimo)} · max ${num(s.massimo)} · ultimo ${num(s.ultimo)}</p>
     <p class="materia-serve${s.insufficiente ? " sotto" : ""}">${testoMinimo(s)}${notaRegistro(s)}</p>
-    <button type="button" class="link" data-sim="${esc(s.materia)}">E se prendo… →</button>
+    <button type="button" class="link" data-sim="${esc(s.materia)}">E se prendo…${ico("freccia")}</button>
   </div>`;
 }
 
 // «Cosa fare adesso»: le materie sotto il 6, quelle in calo e le verifiche della settimana nelle materie in bilico.
 function azioniVoti() {
   const voci = new Map();
-  const prova = (s) => `<button type="button" class="link" data-sim="${esc(s.materia)}">Prova nel simulatore →</button>`;
+  const prova = (s) => `<button type="button" class="link" data-sim="${esc(s.materia)}">Prova nel simulatore${ico("freccia")}</button>`;
   D.statistiche.filter((s) => s.insufficiente).forEach((s) => voci.set(s.materia, { s, livello: "critico", testo: testoMinimo(s), azione: prova(s) }));
   D.statistiche.filter((s) => s.andamento === "giu" && !s.insufficiente)
     .forEach((s) => voci.set(s.materia, { s, livello: "attenzione", testo: `In calo: gli ultimi voti sono sotto i precedenti. ${testoMinimo(s)}`, azione: prova(s) }));
@@ -789,9 +810,9 @@ function azioniVoti() {
     else voci.set(s.materia, { s, livello: "attenzione", testo: `${verifica}La media è appena sopra il 6: conviene prepararla bene.`, azione: prova(s) });
   });
   const lista = [...voci.values()];
-  if (!lista.length) return '<div class="box"><div class="empty">Tutte le materie sono sopra il 6 e nessuna è in calo. Continua così!</div></div>';
+  if (!lista.length) return vuotoBox("festa", "Tutte le materie sono sopra il 6 e nessuna è in calo. Continua così!");
   return `<div class="azioni-voti">${lista.slice(0, 3).map((v) => `<div class="azione ${v.livello}"><span class="azione-media">${media(v.s.media)}</span>
-    <div><strong>${esc(v.s.materia)}</strong><p>${v.testo}</p>${v.azione}</div></div>`).join("")}</div>
+    <div><strong>${icoMateria(v.s.materia)}${esc(v.s.materia)}</strong><p>${v.testo}</p>${v.azione}</div></div>`).join("")}</div>
     ${lista.length > 3 ? `<p class="note">E ${plurale(lista.length - 3, "altra materia", "altre materie")} da tenere d'occhio: le trovi nelle schede qui sotto.</p>` : ""}`;
 }
 
@@ -844,21 +865,21 @@ function schedaVoti() {
   const recenti = tutti.filter((v) => !v.fuori).slice(0, 5);
   const ultimi = recenti.length ? `<div class="box"><ul class="ultimi-voti">${recenti.map((v) => `<li><span class="voto${v.valore < D.sufficienza ? " sotto" : ""}">${esc(v.codice)}</span>
       <div>${puntoNuovo(nuovo("voti", chiaveVoto(v)))}<strong>${esc(v.materia)}</strong><div class="muted">${[v.tipo, dataLunga(v.data)].filter(Boolean).map(esc).join(" · ")}</div></div></li>`).join("")}</ul></div>`
-    : '<div class="box"><div class="empty">Ancora nessun voto.</div></div>';
+    : vuotoBox("pensa", "Ancora nessun voto.");
 
   // Due colonne sul PC (a sinistra cosa fare e le materie, a destra simulatore e ultimi voti), una sola sul telefono.
   return `<div class="cards">
-      ${tessera(media(D.media_generale), "media generale")}
-      ${tessera(D.voti.length, "voti registrati")}
-      ${tessera(insufficienti, "materie sotto il 6", insufficienti ? "bad" : "ok")}
-      ${tessera(migliore ? esc(migliore.materia) : "–", migliore ? `materia migliore (${media(migliore.media)})` : "materia migliore")}
+      ${tessera(media(D.media_generale), "media generale", "", "", "media")}
+      ${tessera(D.voti.length, "voti registrati", "", "", "voti")}
+      ${tessera(insufficienti, "materie sotto il 6", insufficienti ? "bad" : "ok", "", "avviso")}
+      ${tessera(migliore ? esc(migliore.materia) : "–", migliore ? `materia migliore (${media(migliore.media)})` : "materia migliore", "", "", "stelline")}
     </div>
     <div class="voti-griglia"><div class="voti-colonna">
-      ${titolo("Cosa fare adesso")}${azioniVoti()}
-      ${titolo("Le tue materie", st.length ? "dalla media più bassa" : "")}${st.length ? `<div class="materie">${st.map(schedaMateria).join("")}</div>` : '<div class="box"><div class="empty">Nessun voto registrato finora.</div></div>'}
+      ${titolo("Cosa fare adesso", "", "lampadina")}${azioniVoti()}
+      ${titolo("Le tue materie", st.length ? "dalla media più bassa" : "", "m-libro")}${st.length ? `<div class="materie">${st.map(schedaMateria).join("")}</div>` : vuotoBox("pensa", "Nessun voto registrato finora.")}
     </div><div class="voti-colonna">
-      ${titolo("Che voto mi serve?")}${simulatore()}
-      ${titolo("Ultimi voti")}${ultimi}
+      ${titolo("Che voto mi serve?", "", "obiettivo")}${simulatore()}
+      ${titolo("Ultimi voti", "", "stelline")}${ultimi}
     </div></div>
     <div class="sezioni">
       ${D.consigli.length ? sezione("consigli", "Tutti i consigli", D.consigli.length, listaConsigli(D.consigli)) : ""}
@@ -873,6 +894,16 @@ const maiuscola = (testo) => testo.replace(/^./, (c) => c.toUpperCase());
 // Un blocco delle schede a due colonne: sul telefono i blocchi di entrambe le colonne si mettono in fila secondo «ordine».
 const blocco = (ordine, html) => (html ? `<div class="blocco" style="order:${ordine}">${html}</div>` : "");
 
+// Un giorno dei prossimi 14 (Carico di lavoro e plancia di Oggi): un puntino blu per compito, arancio per verifica.
+function casella14(g, di) {
+  const x = di(g), d = giorno(g), cose = x.compiti.length + x.verifiche.length;
+  const classe = ["giorno-14", g === D.oggi ? "oggi" : "", scheda === "carico" && g === giornoCarico ? "scelto" : "", giornoPieno(x) ? "pieno" : cose ? "con" : ""].filter(Boolean).join(" ");
+  const punti = x.compiti.slice(0, 5).map((k) => `<i class="c${fatti.has(k.id) ? " fatto" : ""}"></i>`).join("") + x.verifiche.slice(0, 3).map(() => '<i class="v"></i>').join("");
+  return `<button type="button" class="${classe}" data-giorno-carico="${g}" aria-pressed="${g === giornoCarico}"
+    aria-label="${esc(`${dataLunga(g)}: ${plurale(x.compiti.length, "compito", "compiti")}, ${plurale(x.verifiche.length, "verifica", "verifiche")}`)}">
+    <span>${GIORNI[d.getDay()].slice(0, 3)}</span><b>${d.getDate()}</b><span class="punti-14" aria-hidden="true">${punti}</span></button>`;
+}
+
 function schedaCarico() {
   const c = D.carico, blu = "var(--series-1)", arancio = "var(--series-2)";
   const impegni = impegniPerGiorno(), nessuno = { verifiche: [], promemoria: [], compiti: [], variazioni: [] };
@@ -885,16 +916,9 @@ function schedaCarico() {
   const questa = corrente.compiti + corrente.verifiche;
   const mediaSett = c.media_compiti_settimana == null ? null : c.media_compiti_settimana + (c.media_verifiche_settimana || 0);
   const scarto = mediaSett == null ? 0 : Math.round(questa - mediaSett);
-  const rispetto = mediaSett == null ? "" : `<small class="${scarto > 0 ? "bad" : scarto < 0 ? "ok" : "muted"}">${scarto ? `${scarto > 0 ? "▲" : "▼"} ${Math.abs(scarto)} ${scarto > 0 ? "sopra" : "sotto"} la media` : "come la media"}</small>`;
+  const rispetto = mediaSett == null ? "" : `<small class="${scarto > 0 ? "bad" : scarto < 0 ? "ok" : "muted"}">${scarto ? `${ico(scarto > 0 ? "su" : "giu")} ${Math.abs(scarto)} ${scarto > 0 ? "sopra" : "sotto"} la media` : "come la media"}</small>`;
 
-  const casella = (g) => {
-    const x = di(g), d = giorno(g), cose = x.compiti.length + x.verifiche.length;
-    const classe = ["giorno-14", g === D.oggi ? "oggi" : "", g === giornoCarico ? "scelto" : "", giornoPieno(x) ? "pieno" : cose ? "con" : ""].filter(Boolean).join(" ");
-    const punti = x.compiti.slice(0, 5).map((k) => `<i class="c${fatti.has(k.id) ? " fatto" : ""}"></i>`).join("") + x.verifiche.slice(0, 3).map(() => '<i class="v"></i>').join("");
-    return `<button type="button" class="${classe}" data-giorno-carico="${g}" aria-pressed="${g === giornoCarico}"
-      aria-label="${esc(`${dataLunga(g)}: ${plurale(x.compiti.length, "compito", "compiti")}, ${plurale(x.verifiche.length, "verifica", "verifiche")}`)}">
-      <span>${GIORNI[d.getDay()].slice(0, 3)}</span><b>${d.getDate()}</b><span class="punti-14" aria-hidden="true">${punti}</span></button>`;
-  };
+  const casella = (g) => casella14(g, di);
   // Una pillola per materia, con «×2» se ce n'è più di una.
   const pillole = (materie, classe) => [...materie.reduce((m, x) => m.set(x, (m.get(x) || 0) + 1), new Map())]
     .map(([m, n]) => `<span class="pillola ${classe}">${esc(m)}${n > 1 ? ` ×${n}` : ""}</span>`).join("");
@@ -913,7 +937,7 @@ function schedaCarico() {
       <span class="muted">${plurale(r.compiti, "compito", "compiti")} · ${plurale(r.verifiche, "verifica", "verifiche")}</span></div>
       <div class="prov-barra" role="img" aria-label="${esc(`${r.nome}: ${r.compiti} compiti e ${r.verifiche} verifiche`)}"><i class="c" style="width:${(r.compiti / massimo) * 100}%"></i><i class="v" style="width:${(r.verifiche / massimo) * 100}%"></i></div></li>`).join("")}</ul>
       ${lista.length > 5 ? `<button type="button" class="link" data-carico-tutte>${caricoTutte ? "Mostra solo le prime 5" : `Mostra tutte (${lista.length}) ›`}</button>` : ""}`
-      : '<div class="empty">Ancora niente da contare.</div>'}</div>`;
+      : vuoto("pensa", "Ancora niente da contare.")}</div>`;
 
   const settimane = segnaposto((w) => colonne(w, c.per_settimana.map((s) => ({
     label: dataBreve(s.inizio), valori: [s.compiti, s.verifiche], evid: s.corrente,
@@ -926,16 +950,16 @@ function schedaCarico() {
 
   // Sul PC: a sinistra i 14 giorni e da dove arriva il lavoro, a destra i giorni pieni e il resto; sul telefono in quest'ordine: 14 giorni, giorni pieni, provenienza, resto.
   return `<div class="cards">
-      ${tessera(questa, "compiti e verifiche questa settimana", "", rispetto)}
-      ${tessera(mediaSett == null ? "–" : num(Math.round(mediaSett * 10) / 10), "compiti e verifiche a settimana, in media")}
-      ${tessera(pieni.length, "giorni pieni nei prossimi 14", pieni.length ? "bad" : "")}
-      ${tessera(inElenco ? Math.round((fattiElenco / inElenco) * 100) + "%" : "–", `compiti spuntati (${fattiElenco} su ${inElenco})`, "", inElenco ? barra(fattiElenco / inElenco, "fatti") : "")}
+      ${tessera(questa, "compiti e verifiche questa settimana", "", rispetto, "carico")}
+      ${tessera(mediaSett == null ? "–" : num(Math.round(mediaSett * 10) / 10), "compiti e verifiche a settimana, in media", "", "", "media")}
+      ${tessera(pieni.length, "giorni pieni nei prossimi 14", pieni.length ? "bad" : "", "", "avviso")}
+      ${tessera(inElenco ? Math.round((fattiElenco / inElenco) * 100) + "%" : "–", `compiti spuntati (${fattiElenco} su ${inElenco})`, "", inElenco ? barra(fattiElenco / inElenco, "fatti") : "", "spunta")}
     </div>
     <div class="due-colonne"><div class="colonna">
-      ${blocco(1, `${titolo("Prossimi 14 giorni", "tocca un giorno")}<div class="box pad"><div class="quattordici">${giorni.map(casella).join("")}</div>${serie}</div>${giornoScelto(impegni, giornoCarico)}`)}
-      ${blocco(3, `${titolo("Da dove arriva il lavoro", "da inizio anno")}${provenienza}`)}
+      ${blocco(1, `${titolo("Prossimi 14 giorni", "tocca un giorno", "agenda")}<div class="box pad"><div class="quattordici">${giorni.map(casella).join("")}</div>${serie}</div>${giornoScelto(impegni, giornoCarico)}`)}
+      ${blocco(3, `${titolo("Da dove arriva il lavoro", "da inizio anno", "voti")}${provenienza}`)}
     </div><div class="colonna">
-      ${blocco(2, pieni.length ? `${titolo("Giorni pieni in arrivo", plurale(pieni.length, "giorno", "giorni"))}<ul class="pieni">${pieni.map(cartaPieno).join("")}</ul>` : "")}
+      ${blocco(2, pieni.length ? `${titolo("Giorni pieni in arrivo", plurale(pieni.length, "giorno", "giorni"), "avviso")}<ul class="pieni">${pieni.map(cartaPieno).join("")}</ul>` : "")}
       ${blocco(4, `<div class="sezioni">
         ${sezione("k-settimane", "Per settimana", "da inizio anno", grafico("Per settimana", "Da inizio anno; in grassetto la settimana in corso.", serie + settimane))}
         ${sezione("k-giorni", "Giorni di consegna", "", grafico("Giorni di consegna", "In quali giorni della settimana cadono più compiti.", giorniSettimana))}
@@ -943,23 +967,29 @@ function schedaCarico() {
     </div></div>`;
 }
 
-function schedaAssenze() {
+// Il limite di assenze: quante ore puoi ancora perdere e la barra a tacche (scheda Assenze e plancia di Oggi).
+function misuraAssenze() {
   const a = D.assenze, quota = a.limite_ore ? a.ore_perse / a.limite_ore : 0;
   const livello = quota >= 0.8 ? "bad" : quota >= 0.6 ? "warn" : "ok";
-  const nomi = { assenza: "Assenza", ritardo: "Ritardo", uscita: "Uscita anticipata" }, lettere = { assenza: "A", ritardo: "R", uscita: "U" };
-  const ore = (e) => (e.ore == null ? "ore non ricavabili" : plurale(e.ore, "ora", "ore"));
   const piene = Math.min(20, Math.round(quota * 20));
   const tacche = barraTacche(Array.from({ length: 20 }, (_, i) => [1, [i < piene ? "si" : "", i >= 16 ? "rossa" : ""].join(" ").trim()]), `${a.ore_perse} ore perse su ${a.limite_ore}`);
   const giorniRimasti = a.ore_al_giorno && a.ore_rimaste > 0 ? Math.floor(a.ore_rimaste / a.ore_al_giorno) : null;
-  const previsione = a.previsione == null || !a.ore_perse ? "" : a.previsione <= a.limite_ore
-    ? `<p class="previsione ok">Al ritmo di adesso arrivi a fine anno con circa ${a.previsione} ore perse: sotto il limite. ✓</p>`
-    : `<p class="previsione bad">Al ritmo di adesso arrivi a fine anno con circa ${a.previsione} ore perse: oltre il limite di ${a.limite_ore}.</p>`;
-  const limite = `<div class="box pad limite"><div class="limite-testa"><div>
+  return `<div class="limite-testa"><div>
       <span class="muted">${a.ore_rimaste >= 0 ? "Puoi ancora perdere" : "Hai superato il limite di"}</span>
       <b class="limite-num ${livello}">${grande(plurale(Math.abs(a.ore_rimaste), "ora", "ore"))}</b>
       ${giorniRimasti != null ? `<span class="muted">circa ${plurale(giorniRimasti, "giorno", "giorni")} di scuola</span>` : ""}</div>
       <div class="limite-conto"><b>${a.ore_perse} / ${a.limite_ore}</b><span class="muted">ore perse · ${Math.round(quota * 100)}%</span></div></div>
-    ${tacche}<div class="limite-scala"><span>inizio anno</span><span><span class="bad">rosso dall'80%</span> · ${a.limite_ore} h</span></div>
+    ${tacche}<div class="limite-scala"><span>inizio anno</span><span><span class="bad">rosso dall'80%</span> · ${a.limite_ore} h</span></div>`;
+}
+
+function schedaAssenze() {
+  const a = D.assenze;
+  const nomi = { assenza: "Assenza", ritardo: "Ritardo", uscita: "Uscita anticipata" }, lettere = { assenza: "A", ritardo: "R", uscita: "U" };
+  const ore = (e) => (e.ore == null ? "ore non ricavabili" : plurale(e.ore, "ora", "ore"));
+  const previsione = a.previsione == null || !a.ore_perse ? "" : a.previsione <= a.limite_ore
+    ? `<p class="previsione ok">${ico("spunta")} Al ritmo di adesso arrivi a fine anno con circa ${a.previsione} ore perse: sotto il limite.</p>`
+    : `<p class="previsione bad">Al ritmo di adesso arrivi a fine anno con circa ${a.previsione} ore perse: oltre il limite di ${a.limite_ore}.</p>`;
+  const limite = `<div class="box pad limite">${misuraAssenze()}
     ${previsione}
     <p class="note">Il limite è il 25% del monte ore annuale, ${a.ore_dall_orario ? `calcolato sulle ${a.ore_settimanali} ore settimanali del tuo orario per 33 settimane` : "stimato in 32 ore per 33 settimane: puoi cambiare la stima in config.py"}. Finora sono state svolte ${a.ore_svolte} ore di lezione${a.percentuale == null ? "" : `: ne hai perse il ${num(a.percentuale)}%`}.
     ${a.eventi_senza_ore ? ` Per ${plurale(a.eventi_senza_ore, "evento", "eventi")} le ore non si possono ricavare dal registro e non sono contate.` : ""}</p></div>`;
@@ -976,24 +1006,24 @@ function schedaAssenze() {
   const massimo = Math.max(1, ...a.per_materia.map((r) => r.ore));
   const perMateria = a.per_materia.length ? `<div class="box pad"><ul class="ore-materia">${a.per_materia.map((r) => `<li><span>${esc(r.materia)}</span>
       <div class="prov-barra" role="img" aria-label="${esc(`${r.materia}: ${plurale(r.ore, "ora persa", "ore perse")}`)}"><i class="c" style="width:${(r.ore / massimo) * 100}%"></i></div><b>${r.ore} h</b></li>`).join("")}</ul></div>`
-    : '<div class="box"><div class="empty">Nessuna ora persa finora.</div></div>';
+    : vuotoBox("festa", "Nessuna ora persa finora.");
   const perMese = a.per_mese.some((m) => m.ore) ? segnaposto((w) => colonne(w, a.per_mese.map((m) => ({ label: mese(m.mese), valori: [m.ore], tip: `<b>${mese(m.mese)}</b><br>${plurale(m.ore, "ora persa", "ore perse")}` })), ["var(--series-1)"], { titolo: "Ore perse per mese" })) : '<p class="muted">Nessuna ora persa finora.</p>';
 
   // Sul PC: a sinistra limite, numeri e materie; a destra da giustificare, ultimi eventi e il resto. Sul telefono in quest'ordine: limite, numeri, da giustificare, eventi, materie, resto.
   return `<div class="due-colonne assenze"><div class="colonna">
-      ${blocco(1, `${titolo("Limite di assenze")}${limite}`)}
+      ${blocco(1, `${titolo("Limite di assenze", "", "media")}${limite}`)}
       ${blocco(2, `<div class="cards">
-        ${tessera(a.ore_perse, "ore di lezione perse")}
-        ${tessera(a.giorni_assenza, "giorni di assenza")}
-        ${tessera(a.ritardi, "ritardi")}
-        ${tessera(a.uscite, "uscite anticipate")}
-        ${tessera(a.da_giustificare, "da giustificare", a.da_giustificare ? "bad" : "ok")}
+        ${tessera(a.ore_perse, "ore di lezione perse", "", "", "orario")}
+        ${tessera(a.giorni_assenza, "giorni di assenza", "", "", "assenze")}
+        ${tessera(a.ritardi, "ritardi", "", "", "sveglia")}
+        ${tessera(a.uscite, "uscite anticipate", "", "", "entra")}
+        ${tessera(a.da_giustificare, "da giustificare", a.da_giustificare ? "bad" : "ok", "", "matita")}
       </div>`)}
-      ${blocco(5, `${titolo("Dove hai perso ore")}${perMateria}`)}
+      ${blocco(5, `${titolo("Dove hai perso ore", "", "voti")}${perMateria}`)}
     </div><div class="colonna">
-      ${blocco(3, daGiust.length ? `${titolo("Da giustificare", daGiust.length)}<ul class="giustificare">${daGiust.map(cartaGiust).join("")}</ul>` : "")}
+      ${blocco(3, daGiust.length ? `${titolo("Da giustificare", daGiust.length, "matita")}<ul class="giustificare">${daGiust.map(cartaGiust).join("")}</ul>` : "")}
       ${blocco(4, `${titolo("Ultimi eventi", recenti.length > 4 ? `<button type="button" class="link" data-apri-sezione="as-eventi">tutti (${recenti.length}) ›</button>` : "")}
-        ${recenti.length ? `<div class="box"><ul class="eventi-assenze">${recenti.slice(0, 4).map(rigaEvento).join("")}</ul></div>` : '<div class="box"><div class="empty">Nessuna assenza, ritardo o uscita registrati.</div></div>'}`)}
+        ${recenti.length ? `<div class="box"><ul class="eventi-assenze">${recenti.slice(0, 4).map(rigaEvento).join("")}</ul></div>` : vuotoBox("festa", "Nessuna assenza, ritardo o uscita registrati.")}`)}
       ${blocco(6, `<div class="sezioni">
         ${sezione("as-mesi", "Ore perse per mese", "", grafico("Per mese", "Ore perse mese per mese.", perMese))}
         ${recenti.length ? sezione("as-eventi", "Tutti gli eventi", recenti.length, tabella) : ""}
@@ -1073,14 +1103,60 @@ function giornata(lezioni) {
     const inCorso = l.inizio <= adesso && adesso < l.fine && l.stato !== "annullata", passata = l.fine <= adesso;
     const classe = [passata ? "passata" : inCorso ? "ora" : "", l.stato === "annullata" ? "annullata" : ""].join(" ");
     const stato = l.variazione ? `<span class="tag${l.nuova || l.stato === "annullata" ? " bad" : ""}">${esc(l.stato)}</span>`
-      : inCorso ? `<span class="tag accento">ancora ${minuti(l.fine) - minuti(adesso)}'</span>` : passata ? '<span class="muted fatta">✓ fatta</span>' : "";
-    return `<li class="${classe}"><span class="ore">${l.inizio}–${l.fine}</span><div><strong>${esc(l.materia)}</strong>
+      : inCorso ? `<span class="tag accento">ancora ${minuti(l.fine) - minuti(adesso)}'</span>` : passata ? `<span class="muted fatta">${ico("spunta")} fatta</span>` : "";
+    return `<li class="${classe}"><span class="ore">${l.inizio}–${l.fine}</span><div>${icoMateria(l.materia)}<strong>${esc(l.materia)}</strong>
       <div class="muted">${dettagliLezione(l)}${l.variazione && dettagliVariazione(l) ? " · " + dettagliVariazione(l) : ""}</div></div>${stato}</li>`;
   }).join("")}</ul></div>`;
 }
 
-// Un titolo di sezione con, a destra, un riassunto in piccolo.
-const titolo = (testo, destra = "") => (destra ? `<h2 class="con-destra">${testo}<span class="h2-destra">${destra}</span></h2>` : `<h2>${testo}</h2>`);
+// Un titolo di sezione con, a destra, un riassunto in piccolo; davanti, se c'è, un'icona.
+const titolo = (testo, destra = "", icona = "") => {
+  const i = icona ? ico(icona) : "";
+  return destra ? `<h2 class="con-destra">${i}${testo}<span class="h2-destra">${destra}</span></h2>` : `<h2>${i}${testo}</h2>`;
+};
+
+// Un riquadro della plancia di Oggi: titolo con icona, una nota a destra e «Apri» che porta alla scheda completa.
+// «largo»: compare solo quando la scheda è larga (PC); «doppio»: occupa due colonne.
+function riquadro({ id, icona, titolo: testo, nota = "", vai = "", corpo, largo = false, doppio = false }) {
+  const classi = ["tile", largo ? "largo" : "", doppio ? "doppio" : ""].filter(Boolean).join(" ");
+  const apri = vai ? `<button type="button" class="link apri" data-vai="${vai}">Apri${ico("freccia")}</button>` : "";
+  return `<section class="${classi}" data-tile="${id}"><h2>${ico(icona)}<span class="tile-titolo">${testo}</span>${nota ? `<span class="h2-destra">${nota}</span>` : ""}${apri}</h2>${corpo}</section>`;
+}
+
+// Le materie con la loro media e gli ultimi voti in un colpo d'occhio (plancia).
+function miniMaterie() {
+  const st = D.statistiche;
+  if (!st.length) return vuotoBox("pensa", "Ancora nessun voto.");
+  return `<div class="box"><ul class="mini-materie">${st.map((s) => `<li class="${s.insufficiente ? "insuff" : ""}">
+    <span class="nome">${icoMateria(s.materia)}<span title="${esc(s.materia)}">${esc(s.materia)}</span></span>${sparkVoti(s.materia) || "<span></span>"}
+    <b class="${s.insufficiente ? "bad" : ""}">${media(s.media)}</b></li>`).join("")}</ul></div>`;
+}
+
+// Il mese in corso in piccolo: un puntino per impegno; un tocco apre il giorno nell'Agenda.
+function miniMese(impegni) {
+  const base = giorno(D.oggi), primo = new Date(base.getFullYear(), base.getMonth(), 1);
+  const giorniMese = new Date(primo.getFullYear(), primo.getMonth() + 1, 0).getDate(), vuoti = (primo.getDay() + 6) % 7;
+  const celle = Array(vuoti).fill('<span class="giorno-cal fuori"></span>');
+  for (let g = 1; g <= giorniMese; g++) {
+    const iso = isoDi(new Date(primo.getFullYear(), primo.getMonth(), g)), x = impegni.get(iso);
+    const tipi = x ? [...x.verifiche.map(() => "v"), ...x.variazioni.map(() => "x"), ...x.compiti.map((c) => (fatti.has(c.id) ? "c fatto" : "c"))] : [];
+    const classe = [iso === D.oggi ? "oggi" : "", iso < D.oggi ? "passato" : "", (new Date(primo.getFullYear(), primo.getMonth(), g).getDay() + 6) % 7 > 4 ? "festivo" : ""].filter(Boolean).join(" ");
+    celle.push(`<button type="button" class="giorno-cal ${classe}" data-apri-giorno="${iso}" aria-label="${esc(dataLunga(iso) + (tipi.length ? `: ${plurale(tipi.length, "impegno", "impegni")}` : ""))}">
+      <span class="num">${g}</span><span class="cal-punti">${tipi.slice(0, 4).map((t) => `<i class="${t}"></i>`).join("")}</span></button>`);
+  }
+  return `<div class="box pad mini-mese"><div class="cal-griglia">${["L", "M", "M", "G", "V", "S", "D"].map((g) => `<span class="cal-testa">${g}</span>`).join("")}${celle.join("")}</div></div>`;
+}
+
+// Le ultime circolari (solo se il profilo le ha).
+function miniCircolari() {
+  const elenco = ((D.circolari && D.circolari.elenco) || []).slice(0, 4);
+  if (!elenco.length) return vuotoBox("pensa", "Nessuna circolare ancora scaricata.");
+  return `<div class="box"><ul class="mini-circolari">${elenco.map((c) => {
+    const link = (c.allegati && c.allegati[0] && c.allegati[0].url) || c.link;
+    return `<li>${puntoNuovo(nuovo("circolari", String(c.id)))}<a href="${esc(link)}" target="_blank" rel="noopener">${esc(c.titolo)}</a>
+      <span class="muted">${c.numero ? `n. ${c.numero} · ` : ""}${c.data ? quando(c.data) : ""}${perMiaClasse(c) ? " · la tua classe" : ""}</span></li>`;
+  }).join("")}</ul></div>`;
+}
 
 function schedaOggi() {
   const lezioni = lezioniOrario().filter((l) => l.data === D.oggi).sort((a, b) => (a.inizio < b.inizio ? -1 : a.inizio > b.inizio ? 1 : 0));
@@ -1096,30 +1172,44 @@ function schedaOggi() {
   const gg = future.length ? giorniDa(future[0].data) : null;
   const d = giorno(D.oggi);
   const titoloProssimo = giorniDa(prossimo) === 1 ? "Per domani" : `Per ${dataLunga(prossimo)}`;
-  // Tre colonne sul PC, una sola sul telefono (in quest'ordine): adesso e orario; compiti; verifiche e voti.
+  const impegni = impegniPerGiorno(), di = (iso) => impegni.get(iso) || { verifiche: [], promemoria: [], compiti: [], variazioni: [] };
+
+  const elencoVerifiche = verifiche.length ? `<div class="box"><ul class="consigli">${verifiche.map((p) => { const n = giorniDa(p.data); return `<li class="${n <= 1 ? "critico" : "attenzione"}">
+      <span class="icona conto" aria-hidden="true">${n === 0 ? "<small>oggi</small>" : `<b>${n}</b><small>${n === 1 ? "giorno" : "giorni"}</small>`}</span>
+      <div>${puntoNuovo(nuovo("verifiche", chiaveVerifica(p)))}${icoMateria(p.materia)}<strong>${esc(p.materia)}</strong> <span class="muted">· ${dataLunga(p.data)}${p.orario ? " · " + esc(p.orario) : ""} · ${quando(p.data)}</span><div class="muted">${esc(p.testo)}</div></div></li>`; }).join("")}</ul></div>`
+    : vuotoBox("festa", "Nessuna verifica in vista.");
+  const votiRecenti = `<div class="cards oggi-voti">${nuoviVoti.map((v) => tessera(esc(v.codice), `${puntoNuovo(nuovo("voti", chiaveVoto(v)))}${esc(v.materia)} · ${dataBreve(v.data)}`, v.valore < D.sufficienza ? "bad" : "ok",
+    v.valore == null ? "" : barra(v.valore / 10, v.valore < D.sufficienza ? "basso" : "alto"))).join("")}</div>`;
+  const giorni14 = Array.from({ length: 14 }, (_, i) => spostaGiorni(D.oggi, i));
+  const pieni = giorni14.filter((g) => giornoPieno(di(g))).length;
+
+  // I riquadri nell'ordine in cui si leggono sul telefono; sul PC la griglia li affianca (style.css, «.plancia»).
+  const riquadri = [
+    D.orario ? riquadro({ id: "adesso", icona: "sveglia", titolo: "Adesso", vai: "orario", corpo: riquadroAdesso(lezioni), doppio: true }) : "",
+    lezioni.length ? riquadro({ id: "orario", icona: "orario", titolo: "Orario di oggi", nota: riassuntoGiornata(lezioni), vai: "orario", corpo: giornata(lezioni) }) : "",
+    perOggi.length ? riquadro({ id: "oggi", icona: "avviso", titolo: `Da consegnare oggi <span class="tag bad">non spuntati</span>`, vai: "compiti", corpo: listaCompiti(perOggi, "") }) : "",
+    riquadro({ id: "domani", icona: "compiti", titolo: titoloProssimo, nota: perProssimo.length ? `${fattiProssimo} di ${perProssimo.length} fatti` : "", vai: "compiti",
+      corpo: listaCompiti(perProssimo, "Niente da consegnare.", perProssimo.length ? `<div class="box-barra">${barra(fattiProssimo / perProssimo.length, "fatti")}</div>` : "") }),
+    riquadro({ id: "verifiche", icona: "bandiera", titolo: "Verifiche nei prossimi 7 giorni", vai: "agenda", corpo: elencoVerifiche }),
+    nuoviVoti.length ? riquadro({ id: "voti", icona: "stelline", titolo: "Voti degli ultimi giorni", vai: "voti",
+      nota: conVoto.length > 1 ? "media " + num(Math.round((conVoto.reduce((t, v) => t + v.valore, 0) / conVoto.length) * 10) / 10) : "", corpo: votiRecenti }) : "",
+    // Da qui in giù solo sul PC: il resto delle schede in piccolo.
+    riquadro({ id: "carico", icona: "carico", titolo: "Prossimi 14 giorni", nota: pieni ? plurale(pieni, "giorno pieno", "giorni pieni") : "", vai: "carico", largo: true, doppio: true,
+      corpo: `<div class="box pad"><div class="quattordici">${giorni14.map((g) => casella14(g, di)).join("")}</div>${legenda([["Compiti", "var(--series-1)"], ["Verifiche", "var(--series-2)"]])}</div>` }),
+    riquadro({ id: "materie", icona: "voti", titolo: "Le tue materie", nota: D.media_generale != null ? "media " + media(D.media_generale) : "", vai: "voti", largo: true, corpo: miniMaterie() }),
+    riquadro({ id: "cosa-fare", icona: "lampadina", titolo: "Cosa fare adesso", vai: "voti", largo: true, corpo: azioniVoti() }),
+    riquadro({ id: "mese", icona: "agenda", titolo: maiuscola(MESI_LUNGHI[d.getMonth()]), nota: "tocca un giorno", vai: "agenda", largo: true, corpo: miniMese(impegni) }),
+    D.assenze ? riquadro({ id: "assenze", icona: "assenze", titolo: "Assenze", vai: "assenze", largo: true, corpo: `<div class="box pad limite">${misuraAssenze()}</div>` }) : "",
+    D.circolari ? riquadro({ id: "circolari", icona: "circolari", titolo: "Ultime circolari", vai: "circolari", largo: true, corpo: miniCircolari() }) : "",
+  ];
   return `<p class="oggi-data">${GIORNI[d.getDay()]} ${d.getDate()} ${MESI_LUNGHI[d.getMonth()]}</p>
     <div class="cards oggi-numeri">
-      ${tessera(daFare, "compiti da fare")}
-      ${tessera(verifiche.length, "verifiche nei prossimi 7 giorni")}
-      ${tessera(gg == null ? "–" : gg === 0 ? "oggi" : gg === 1 ? "domani" : `${gg} gg`, "alla prossima verifica", gg != null && gg <= 2 ? "bad" : "")}
-      ${tessera(media(D.media_generale), "media generale", D.media_generale != null && D.media_generale < D.sufficienza ? "bad" : "")}
+      ${tessera(daFare, "compiti da fare", "", "", "compiti")}
+      ${tessera(verifiche.length, "verifiche nei prossimi 7 giorni", "", "", "bandiera")}
+      ${tessera(gg == null ? "–" : gg === 0 ? "oggi" : gg === 1 ? "domani" : `${gg} gg`, "alla prossima verifica", gg != null && gg <= 2 ? "bad" : "", "", "sveglia")}
+      ${tessera(media(D.media_generale), "media generale", D.media_generale != null && D.media_generale < D.sufficienza ? "bad" : "", "", "media")}
     </div>
-    <div class="oggi-griglia"><div class="oggi-colonna">
-      ${D.orario ? riquadroAdesso(lezioni) : ""}
-      ${lezioni.length ? `${titolo("Orario di oggi", riassuntoGiornata(lezioni))}${giornata(lezioni)}` : ""}
-    </div><div class="oggi-colonna">
-      ${perOggi.length ? `<h2>Da consegnare oggi <span class="tag bad">non spuntati</span></h2>${listaCompiti(perOggi, "")}` : ""}
-      ${titolo(titoloProssimo, perProssimo.length ? `${fattiProssimo} di ${perProssimo.length} fatti` : "")}${listaCompiti(perProssimo, "Niente da consegnare.",
-        perProssimo.length ? `<div class="box-barra">${barra(fattiProssimo / perProssimo.length, "fatti")}</div>` : "")}
-    </div><div class="oggi-colonna">
-      ${titolo("Verifiche nei prossimi 7 giorni")}${verifiche.length ? `<div class="box"><ul class="consigli">${verifiche.map((p) => { const n = giorniDa(p.data); return `<li class="${n <= 1 ? "critico" : "attenzione"}">
-        <span class="icona conto" aria-hidden="true">${n === 0 ? "<small>oggi</small>" : `<b>${n}</b><small>${n === 1 ? "giorno" : "giorni"}</small>`}</span>
-        <div>${puntoNuovo(nuovo("verifiche", chiaveVerifica(p)))}<strong>${esc(p.materia)}</strong> <span class="muted">· ${dataLunga(p.data)}${p.orario ? " · " + esc(p.orario) : ""} · ${quando(p.data)}</span><div class="muted">${esc(p.testo)}</div></div></li>`; }).join("")}</ul></div>`
-        : '<div class="box"><div class="empty">Nessuna verifica in vista.</div></div>'}
-      ${nuoviVoti.length ? `${titolo("Voti degli ultimi giorni", conVoto.length > 1 ? "media " + num(Math.round((conVoto.reduce((t, v) => t + v.valore, 0) / conVoto.length) * 10) / 10) : "")}
-        <div class="cards oggi-voti">${nuoviVoti.map((v) => tessera(esc(v.codice), `${puntoNuovo(nuovo("voti", chiaveVoto(v)))}${esc(v.materia)} · ${dataBreve(v.data)}`, v.valore < D.sufficienza ? "bad" : "ok",
-          v.valore == null ? "" : barra(v.valore / 10, v.valore < D.sufficienza ? "basso" : "alto"))).join("")}</div>` : ""}
-    </div></div>`;
+    <div class="plancia">${riquadri.join("")}</div>`;
 }
 
 /* ---------- ricerca nei compiti ---------- */
@@ -1145,11 +1235,11 @@ function risultatiRicerca() {
     .filter((c) => { const t = piega(`${c.materia} ${c.testo} ${c.docente}`); return termini.every((x) => t.includes(x)); })
     .sort((a, b) => (a.consegna < b.consegna ? 1 : a.consegna > b.consegna ? -1 : 0));
   const MAX = 80;
-  if (!tutti.length) return `<div class="box"><div class="empty">Nessun compito contiene «${esc(ricerca.trim())}».</div></div>`;
+  if (!tutti.length) return vuotoBox("cerca", `Nessun compito contiene «${esc(ricerca.trim())}».`);
   return `<p class="sub" style="margin:0 0 8px">${plurale(tutti.length, "compito trovato", "compiti trovati")}${tutti.length > MAX ? `, mostro i ${MAX} più recenti` : ""}</p>
     <div class="box"><ul class="todo">${tutti.slice(0, MAX).map((c) => `<li class="${fatti.has(c.id) ? "fatto" : ""}"><label>
       <input type="checkbox" data-id="${c.id}" ${fatti.has(c.id) ? "checked" : ""}>
-      <span><span class="muted quando-ricerca">${dataLunga(c.consegna)} · ${quando(c.consegna)}</span><strong>${evidenzia(c.materia, termini)}</strong> — ${evidenzia(c.testo, termini)}</span></label></li>`).join("")}</ul></div>`;
+      <span><span class="muted quando-ricerca">${dataLunga(c.consegna)} · ${quando(c.consegna)}</span>${icoMateria(c.materia)}<strong>${evidenzia(c.materia, termini)}</strong> — ${evidenzia(c.testo, termini)}</span></label></li>`).join("")}</ul></div>`;
 }
 
 function aggiornaRicerca() {
@@ -1194,7 +1284,7 @@ function riquadroCalendario() {
     <p class="note">Copia il testo e incollalo nell'assistente di Google Calendar (o in Gemini): crea lui gli eventi. Con «Solo le novità» non ti ritrovi doppioni.</p>
     <div class="opzioni">${opzione("verifiche", "Verifiche")}${opzione("compiti", "Compiti")}${opzione("nuovi", "Solo le novità")}</div>
     <textarea id="cal-testo" readonly aria-label="Testo per il calendario">${esc(testoCalendario(vociMostrate))}</textarea>
-    <div class="segmenti" style="margin-top:10px"><button type="button" class="btn small" id="cal-copia">Copia</button>
+    <div class="segmenti" style="margin-top:10px"><button type="button" class="btn small" id="cal-copia">${ico("copia")}Copia</button>
       <button type="button" class="btn ghost small" id="cal-azzera">Dimentica cosa ho già copiato</button></div></div></details>`;
 }
 
@@ -1210,8 +1300,8 @@ async function copiaCalendario() {
   // Il testo resta nel riquadro (se l'incolla non riesce si ricopia), ma la prossima volta queste voci non ricompaiono.
   try { localStorage.setItem(chiaveCalendario(), JSON.stringify([...new Set([...giaCopiati(), ...vociMostrate.map((v) => v[0])])].slice(-500))); } catch {}
   const b = $("#cal-copia");
-  b.textContent = "Copiato ✓";
-  setTimeout(() => { if ($("#cal-copia")) $("#cal-copia").textContent = "Copia"; }, 2000);
+  b.innerHTML = `${ico("spunta")}Copiato`;
+  setTimeout(() => { if ($("#cal-copia")) $("#cal-copia").innerHTML = `${ico("copia")}Copia`; }, 2000);
 }
 
 const CONTENUTO = { oggi: schedaOggi, agenda: schedaAgenda, compiti: schedaCompiti, orario: schedaOrario, voti: schedaVoti, circolari: schedaCircolari, carico: schedaCarico, assenze: schedaAssenze };
@@ -1227,21 +1317,21 @@ function elencoCircolari() {
   const parole = cercaCircolari.toLowerCase().split(/\s+/).filter(Boolean);
   const elenco = ((D.circolari && D.circolari.elenco) || []).filter((c) => (!soloMiaClasse || perMiaClasse(c))
     && parole.every((p) => `${c.numero || ""} ${c.titolo} ${c.descrizione} ${(c.etichette || []).join(" ")}`.toLowerCase().includes(p)));
-  if (!elenco.length) return `<div class="box"><div class="empty">${!D.circolari.elenco.length ? "Nessuna circolare ancora scaricata: premi «Aggiorna»."
-    : soloMiaClasse && !parole.length ? `Tra le ultime circolari nessuna nomina la ${esc(D.classe)}.` : "Nessuna circolare trovata."}</div></div>`;
+  if (!elenco.length) return !D.circolari.elenco.length ? vuotoBox("pensa", "Nessuna circolare ancora scaricata: premi «Aggiorna».")
+    : vuotoBox("cerca", soloMiaClasse && !parole.length ? `Tra le ultime circolari nessuna nomina la ${esc(D.classe)}.` : "Nessuna circolare trovata.");
   return `<ul class="circolari">${elenco.map((c) => `<li class="box${perMiaClasse(c) ? " mia" : ""}">
       <div class="circ-testa">${puntoNuovo(nuovo("circolari", String(c.id)))}<span class="muted">${c.numero ? `n. ${c.numero} · ` : ""}${c.data ? `${dataLunga(c.data)} · ${quando(c.data)}` : ""}</span>
         ${perMiaClasse(c) ? '<span class="tag">la tua classe</span>' : ""}${(c.etichette || []).map((e) => `<span class="tag tenue">${esc(e)}</span>`).join("")}</div>
       <strong>${esc(c.titolo)}</strong>${c.descrizione ? `<p class="muted">${esc(c.descrizione)}</p>` : ""}
-      <div class="segmenti">${(c.allegati || []).slice(0, 4).map((a, i) => `<a class="btn ${i ? "ghost " : ""}small" href="${esc(a.url)}" target="_blank" rel="noopener">${esc(i ? a.nome.replace(/\.pdf$/i, "") : "Apri la circolare")}</a>`).join("")}
-        <a class="btn ghost small" href="${esc(c.link)}" target="_blank" rel="noopener">Sul sito${(c.allegati || []).length > 4 ? ` (altri ${c.allegati.length - 4} allegati)` : ""}</a></div></li>`).join("")}</ul>`;
+      <div class="segmenti">${(c.allegati || []).slice(0, 4).map((a, i) => `<a class="btn ${i ? "ghost " : ""}small" href="${esc(a.url)}" target="_blank" rel="noopener">${i ? "" : ico("circolari")}${esc(i ? a.nome.replace(/\.pdf$/i, "") : "Apri la circolare")}</a>`).join("")}
+        <a class="btn ghost small" href="${esc(c.link)}" target="_blank" rel="noopener">${ico("esterno")}Sul sito${(c.allegati || []).length > 4 ? ` (altri ${c.allegati.length - 4} allegati)` : ""}</a></div></li>`).join("")}</ul>`;
 }
 
 function schedaCircolari() {
   const C = D.circolari;
-  if (!C) return '<div class="box"><div class="empty">Questo profilo non ha le circolari: modificalo e incolla l\'indirizzo della pagina delle circolari su trasparenza-pa.net.</div></div>';
+  if (!C) return `<div class="box">${vuoto("pensa", "Questo profilo non ha le circolari: modificalo e incolla l'indirizzo della pagina delle circolari su trasparenza-pa.net.", "", true)}</div>`;
   const classe = miaClasse() ? `<button type="button" class="btn small${soloMiaClasse ? "" : " ghost"}" data-circ-classe="1" aria-pressed="${soloMiaClasse}">Solo la ${esc(D.classe)}</button>` : "";
-  return `${titolo("Circolari della scuola", C.scaricato ? `aggiornate ${quando(C.scaricato) === "oggi" ? "oggi" : "il " + dataBreve(C.scaricato)}` : "")}
+  return `${titolo("Circolari della scuola", C.scaricato ? `aggiornate ${quando(C.scaricato) === "oggi" ? "oggi" : "il " + dataBreve(C.scaricato)}` : "", "circolari")}
     <div class="riga cerca"><input type="search" id="cerca-circolari" value="${esc(cercaCircolari)}" placeholder="Cerca: sciopero, uscita, assemblea…" aria-label="Cerca nelle circolari" autocomplete="off">${classe}</div>
     <div id="elenco-circolari">${elencoCircolari()}</div>
     <p class="note">Dal sito pubblico della scuola: Zaino legge solo l'elenco, senza password. I PDF si aprono sul sito.</p>`;
@@ -1271,7 +1361,8 @@ function applica(dati) {
   if (D.vuoto) {
     impostaTitolo(D.profilo ? D.profilo.nome : "Zaino");
     $("#aggiornato").textContent = "Nessun dato ancora scaricato.";
-    SCHEDE.forEach((s) => { $(`#tab-${s}`).innerHTML = ""; });
+    SCHEDE.forEach((s) => { $(`#tab-${s}`).innerHTML = `<div class="box" style="margin-top:20px">${vuoto("pensa", "Qui non c'è ancora niente: premi «Aggiorna» e Zaino scarica dal registro compiti, voti, verifiche e orario.",
+      `<div class="segmenti"><button type="button" class="btn" data-aggiorna-ora="1">${ico("aggiorna")}Aggiorna</button></div>`, true)}</div>`; });
     return;
   }
   caricaVisti();
@@ -1302,7 +1393,7 @@ async function aggiorna() {
   }
   bottone.disabled = false;
   $("#apri-profili").disabled = false;
-  bottone.textContent = "Aggiorna";
+  bottone.innerHTML = `${ico("aggiorna")}<span>Aggiorna</span>`;
   sincronizza();
 }
 
@@ -1318,6 +1409,7 @@ function schermo(profili) {
   $("#profili").hidden = !profili;
   $("#app").hidden = profili;
   $("#aggiorna").hidden = profili;
+  $("#stringi-menu").hidden = profili;
   $("#apri-profili").hidden = profili || !P;
   if (profili) {
     impostaTitolo("Zaino");
@@ -1552,20 +1644,20 @@ function disegnaProfili() {
   $("#aggiornato").textContent = modulo ? (P.profili.length ? "Compila i dati del profilo." : "Per iniziare crea il tuo profilo.") : "Scegli con quale profilo entrare.";
   if (!modulo && panoramica) { el.innerHTML = vistaPanoramica(); return; }
   if (!modulo) {
-    el.innerHTML = `${P.profili.length > 1 ? interruttoreVista() : ""}<div class="profili">${P.profili.map((p) => `<div class="profilo">
+    el.innerHTML = `${benvenuto(P.profili.length ? "Ciao! Con chi entriamo?" : "Ciao, sono Zaino!", "Scegli un profilo: compiti, voti e verifiche ti aspettano.")}${P.profili.length > 1 ? interruttoreVista() : ""}<div class="profili">${P.profili.map((p) => `<div class="profilo">
         <span class="tag">${esc(P.registri[p.registro] || p.registro)}</span>
         <h3>${esc(p.nome)}</h3>
         <p class="muted">${esc(p.utente)}${p.untis ? ` · orario ${esc(p.untis.classe)}` : ""}</p>
-        <div class="segmenti"><button type="button" class="btn small" data-entra="${p.id}">Entra</button>
-          <button type="button" class="btn ghost small" data-modifica="${p.id}">Modifica</button>
-          <button type="button" class="btn ghost small" data-elimina="${p.id}">Elimina</button></div></div>`).join("")}
-      <button type="button" class="profilo nuovo" data-nuovo="1">+ Nuovo profilo</button></div>${riquadroSync()}${riquadroAggiornamenti()}${firma()}`;
+        <div class="segmenti"><button type="button" class="btn small" data-entra="${p.id}">${ico("entra")}Entra</button>
+          <button type="button" class="btn ghost small" data-modifica="${p.id}">${ico("matita")}Modifica</button>
+          <button type="button" class="btn ghost small" data-elimina="${p.id}">${ico("cestino")}Elimina</button></div></div>`).join("")}
+      <button type="button" class="profilo nuovo" data-nuovo="1">${ico("piu")} Nuovo profilo</button></div>${riquadroSync()}${riquadroAggiornamenti()}${firma()}`;
     return;
   }
   const m = modulo, registro = (valore, nome, nota) => `<label class="scelta${m.registro === valore ? " attiva" : ""}"><input type="radio" name="registro" value="${valore}" ${m.registro === valore ? "checked" : ""} required>
     <span><strong>${nome}</strong><small>${nota}</small></span></label>`;
   const campo = (nome, etichetta, extra = "") => `<label>${etichetta}<input name="${nome}" value="${esc(m[nome])}" ${extra}></label>`;
-  el.innerHTML = `<form id="modulo-profilo" class="box pad modulo" autocomplete="off">
+  el.innerHTML = `${P.profili.length ? "" : benvenuto("Ciao, sono Zaino!", "Porto io compiti, voti, verifiche e orario: dimmi solo che registro usa la tua scuola.")}<form id="modulo-profilo" class="box pad modulo" autocomplete="off">
       <h2>${m.id ? "Modifica profilo" : "Nuovo profilo"}</h2>
       <fieldset><legend>1. Che registro usa la tua scuola?</legend>
         <div class="scelte">${registro("argo", "Argo didUP", "portaleargo.it")}${registro("nuvola", "Nuvola", "nuvola.madisoft.it · studenti e tutori")}${registro("classeviva", "ClasseViva", "Spaggiari · sperimentale")}</div></fieldset>
@@ -1617,6 +1709,9 @@ async function entra(id) {
   await sincronizza(); // se il PC ha dati più freschi, sul telefono non serve riscaricarli
   if (P.attivo === id && datiVecchi()) aggiorna();
 }
+
+// La striscia con Zaino che saluta, in cima alla pagina dei profili.
+const benvenuto = (titolo, testo) => `<div class="benvenuto">${mascotte("saluta")}<div><strong>${titolo}</strong><p>${testo}</p></div></div>`;
 
 function firma() {
   return `<p class="muted versione">Zaino ${esc(P.versione || "")} · 100% locale: i dati restano su questo dispositivo.</p>`;
@@ -1725,16 +1820,40 @@ document.addEventListener("toggle", (e) => {
   if (e.target.open && e.target.querySelector("[data-svg]")) mostra(); // da chiusi i grafici erano stati disegnati senza larghezza
 }, true);
 
+// Passa a un'altra scheda (dal menu o da «Apri» nei riquadri di Oggi).
+function vaiA(nome, inCima = false) {
+  if (nome !== scheda) segnaVisti(scheda); // le novità della scheda che lasci ora le hai viste
+  scheda = nome;
+  try { localStorage.setItem("scheda", scheda); } catch {}
+  mostra();
+  if (inCima) window.scrollTo({ top: 0 });
+}
+
+// Il menu laterale del PC ridotto alle icone: più spazio per i riquadri. Si ricorda su questo dispositivo.
+let menuStretto = false;
+try { menuStretto = localStorage.getItem("menu-stretto") === "1"; } catch {}
+function applicaMenu() {
+  $("#app").classList.toggle("stretto", menuStretto);
+  const b = $("#stringi-menu"), testo = menuStretto ? "Allarga il menu" : "Riduci il menu";
+  b.setAttribute("aria-pressed", String(menuStretto));
+  b.setAttribute("aria-label", testo);
+  b.title = testo;
+  document.querySelectorAll(".tabs [data-tab]").forEach((t) => { t.title = menuStretto ? t.querySelector(".nome").textContent : ""; });
+}
+
 document.addEventListener("click", (e) => {
   const el = e.target.closest("button");
   if (!el) return;
-  if (el.dataset.tab) {
-    if (el.dataset.tab !== scheda) segnaVisti(scheda); // le novità della scheda che lasci ora le hai viste
-    scheda = el.dataset.tab;
-    try { localStorage.setItem("scheda", scheda); } catch {}
-    mostra();
+  if (el.dataset.tab) vaiA(el.dataset.tab);
+  else if (el.dataset.vai) vaiA(el.dataset.vai, true);
+  else if (el.dataset.apriGiorno) { giornoAgenda = el.dataset.apriGiorno; meseAgenda = 0; vaiA("agenda", true); }
+  else if (el.id === "stringi-menu") {
+    menuStretto = !menuStretto;
+    try { localStorage.setItem("menu-stretto", menuStretto ? "1" : "0"); } catch {}
+    applicaMenu();
+    if (!$("#app").hidden) mostra(); // i grafici si ridisegnano sulla larghezza nuova
   }
-  else if (el.id === "aggiorna") aggiorna();
+  else if (el.id === "aggiorna" || el.dataset.aggiornaOra) aggiorna();
   else if (el.dataset.settimana) { settimanaOrario = +el.dataset.settimana; oraOrario = null; mostra(); }
   else if (el.dataset.cella) { oraOrario = el.dataset.cella; mostra(); }
   else if (el.dataset.dividi !== undefined) dividiOra(el.dataset.dividi, el.dataset.materia);
@@ -1746,12 +1865,13 @@ document.addEventListener("click", (e) => {
   else if (el.dataset.orarioAzione === "salva") { leggiEditorOrario(); salvaOrario(editorOrario.filter((o) => o.materia)); }
   else if (el.dataset.orarioAzione === "cancella") { if (confirm("Cancellare tutto l'orario scritto a mano?")) salvaOrario([]); }
   else if (el.dataset.sim) {
-    const daFuori = !el.closest("#simulatore"); // dalle schede o da «Cosa fare»: si scende fino al simulatore
-    simMateria = el.dataset.sim; simVoto = null; mostra();
+    const daFuori = !el.closest("#simulatore"); // dalle schede o da «Cosa fare» (anche quello di Oggi): si scende fino al simulatore
+    simMateria = el.dataset.sim; simVoto = null;
+    if (scheda !== "voti") vaiA("voti"); else mostra();
     if (daFuori) $("#simulatore")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   else if (el.dataset.giorno) { giornoAgenda = el.dataset.giorno; mostra(); }
-  else if (el.dataset.giornoCarico) { giornoCarico = el.dataset.giornoCarico; mostra(); }
+  else if (el.dataset.giornoCarico) { giornoCarico = el.dataset.giornoCarico; if (scheda !== "carico") vaiA("carico", true); else mostra(); }
   else if (el.dataset.caricoPer) { caricoPer = el.dataset.caricoPer; mostra(); }
   else if (el.hasAttribute("data-carico-tutte")) { caricoTutte = !caricoTutte; mostra(); }
   else if (el.dataset.apriSezione) {
@@ -1827,6 +1947,7 @@ setInterval(() => {
 }, 1000);
 
 (async function avvio() {
+  applicaMenu();
   $("#tema").innerHTML = Object.entries(TEMI).map(([k, nome]) => `<option value="${k}"${k === temaScelto ? " selected" : ""}>${nome}</option>`).join("");
   try { const salvata = localStorage.getItem("scheda"); if (SCHEDE.includes(salvata)) scheda = salvata; } catch {}
   try {

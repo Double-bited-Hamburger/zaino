@@ -1,34 +1,44 @@
+/* Nunito (licenza OFL, vedi LICENZE-TERZE.md): sta in web/ accanto alla pagina, niente si scarica da Internet. */
+@font-face { font-family: Nunito; src: url("nunito.woff2") format("woff2"); font-weight: 200 1000; font-style: normal; font-display: swap; }
+
 /* Temi: «auto» segue chiaro/scuro del sistema; gli altri si scelgono dal menu in alto (vedi tema.js). */
 :root {
   color-scheme: light;
-  --bg: #f6f7f9; --card: #fcfcfb; --text: #1c2330; --muted: #677084; --line: #e3e6ec;
+  --bg: #f4f6f9; --card: #fff; --text: #1c2330; --muted: #677084; --line: #e3e6ec;
   --grid: #e1e0d9; --axis: #c3c2b7;
   --accent: #2a78d6; --accent-soft: #e6f0fc; --on-accent: #fff;
   --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a;
   --bad: #c62f3d; --bad-bg: #fdecee; --ok: #1f8a4c; --warn: #9a5b00; --warn-bg: #fff4e0;
   --critical: #d03b3b; --track: #e9edf3;
-  --font: system-ui, "Segoe UI", sans-serif; --font-titoli: var(--font);
-  --r: 8px; --r-box: 10px;
+  --font: Nunito, system-ui, "Segoe UI", sans-serif; --font-titoli: var(--font);
+  --r: 10px; --r-box: 14px;
+  --ombra: 0 1px 2px rgba(20, 30, 50, .05), 0 3px 10px rgba(20, 30, 50, .04);
+  --ico: 18px;
+  /* Zaino, la mascotte (il disegno è nello sprite di index.html): prende i colori del tema. */
+  --zm-corpo: var(--accent); --zm-scuro: color-mix(in srgb, var(--accent) 72%, #000); --zm-viso: color-mix(in srgb, var(--accent) 14%, #fff);
+  --zm-tasca: color-mix(in srgb, var(--accent) 55%, #fff); --zm-occhi: #1c2330; --zm-guance: #ff8fa3; --zm-extra: var(--series-2);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema]) {
     color-scheme: dark;
-    --bg: #0f1216; --card: #1a1a19; --text: #e7eaf0; --muted: #98a1b3; --line: #2c3340;
+    --bg: #0f1216; --card: #191c21; --text: #e7eaf0; --muted: #98a1b3; --line: #2c3340;
     --grid: #2c2c2a; --axis: #383835;
     --accent: #3987e5; --accent-soft: #1a2a40;
     --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
     --bad: #ff7b86; --bad-bg: #3a1d22; --ok: #5fd08f; --warn: #ffc266; --warn-bg: #3a2d14;
     --critical: #e66767; --track: #2a2f38;
+    --ombra: none;
   }
 }
 :root[data-tema="scuro"] {
   color-scheme: dark;
-  --bg: #0f1216; --card: #1a1a19; --text: #e7eaf0; --muted: #98a1b3; --line: #2c3340;
+  --bg: #0f1216; --card: #191c21; --text: #e7eaf0; --muted: #98a1b3; --line: #2c3340;
   --grid: #2c2c2a; --axis: #383835;
   --accent: #3987e5; --accent-soft: #1a2a40;
   --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
   --bad: #ff7b86; --bad-bg: #3a1d22; --ok: #5fd08f; --warn: #ffc266; --warn-bg: #3a2d14;
   --critical: #e66767; --track: #2a2f38;
+  --ombra: none;
 }
 /* Quaderno: carta a righe, inchiostro blu, titoli scritti a mano (font di sistema: niente da scaricare). */
 :root[data-tema="quaderno"] {
@@ -194,8 +204,13 @@
 .adesso .grande .a-punti { margin: 6px 0 4px; }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 var(--font); }
 main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 64px; }
+/* Le icone dello sprite (index.html): a tratto, del colore del testo intorno. */
+.ico { width: var(--ico); height: var(--ico); flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.22em; }
+.ico-m { color: color-mix(in srgb, hsl(var(--tinta, 215) 62% 50%) 85%, var(--text)); margin-right: 6px; }
+h2 > .ico, .h2-ico { width: 20px; height: 20px; margin-right: 8px; color: var(--accent); vertical-align: -.2em; }
 h1, h2 { font-family: var(--font-titoli); }
 h1 { font-size: 24px; margin: 0; }
 h2 { font-size: 18px; margin: 32px 0 12px; }
@@ -209,8 +224,13 @@ h3 { font-size: 15px; margin: 0 0 2px; }
 .note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 
 .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.btn { font: inherit; font-weight: 600; padding: 8px 16px; border-radius: var(--r); border: 1px solid var(--accent);
-  background: var(--accent); color: var(--on-accent); cursor: pointer; white-space: nowrap; }
+.btn { font: inherit; font-weight: 700; padding: 8px 16px; border-radius: var(--r); border: 1px solid var(--accent);
+  background: var(--accent); color: var(--on-accent); cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.btn .ico { width: 17px; height: 17px; }
+.btn.small .ico { width: 15px; height: 15px; }
+.btn.solo-icona { padding: 8px 10px; }
+.link .ico { width: 15px; height: 15px; margin-left: 2px; }
 .btn:hover { filter: brightness(1.08); }
 .btn:disabled { opacity: .6; cursor: progress; }
 .btn.ghost { background: transparent; color: var(--accent); }
@@ -240,10 +260,17 @@ h3 { font-size: 15px; margin: 0 0 2px; }
 .tabs button:hover { color: var(--text); }
 .tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .tabs button { display: inline-flex; align-items: center; gap: 8px; }
-.tabs .ico { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tabs .ico { width: 18px; height: 18px; vertical-align: 0; }
 
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 14px 16px; }
+.card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 14px 16px; }
+.card.con-ico { padding-right: 50px; }
+.card-ico { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px;
+  background: var(--accent-soft); color: var(--accent); }
+.card-ico .ico { width: 17px; height: 17px; }
+.card-ico.bad { background: var(--bad-bg); color: var(--bad); }
+.card b { font-variant-numeric: tabular-nums; }
+.box, .card, .materia, .azione, .profilo, details.sezione, ul.cambi li, ul.pieni li, ul.giustificare li { box-shadow: var(--ombra); }
 .card b { display: block; font-size: 26px; line-height: 1.2; }
 .card > span { color: var(--muted); font-size: 13px; }
 .card b.bad { color: var(--bad); } .card b.ok { color: var(--ok); }
@@ -253,6 +280,20 @@ h3 { font-size: 15px; margin: 0 0 2px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; }
 .grid2 > .box { min-width: 0; }
 .empty { padding: 18px; color: var(--muted); }
+/* Stati vuoti con la mascotte: il disegno a sinistra, il messaggio accanto (sotto, se lo spazio è poco). */
+.vuoto { display: flex; align-items: center; gap: 16px; }
+.vuoto .mascotte { width: 76px; height: 76px; flex: none; }
+.vuoto-testo { min-width: 0; color: var(--muted); }
+.vuoto-testo .segmenti { margin-top: 12px; }
+.vuoto.grande { flex-direction: column; text-align: center; padding: 40px 18px; }
+.vuoto.grande .mascotte { width: 132px; height: 132px; }
+.vuoto.grande .vuoto-testo { max-width: 46ch; font-size: 16px; }
+.vuoto.grande .segmenti { justify-content: center; }
+.benvenuto { display: flex; align-items: center; gap: 18px; margin-top: 20px; padding: 16px 20px; border-radius: var(--r-box);
+  background: var(--accent-soft); }
+.benvenuto .mascotte { width: 84px; height: 84px; flex: none; }
+.benvenuto strong { display: block; font-size: 18px; }
+.benvenuto p { margin: 2px 0 0; color: var(--muted); }
 
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -315,7 +356,7 @@ ul.scuole .muted { font-size: 12px; }
 
 /* Orario */
 .segmenti { display: flex; gap: 6px; flex-wrap: wrap; }
-a.btn { text-decoration: none; display: inline-block; }
+a.btn { text-decoration: none; }
 /* La griglia della settimana: sigle sul telefono, nomi interi da 701px; un colore per materia (--tinta, da app.js). */
 .orario-layout { display: grid; gap: 0 24px; align-items: start; }
 @media (min-width: 1000px) { .orario-layout { grid-template-columns: minmax(0, 1fr) 340px; } }
@@ -402,8 +443,9 @@ ul.todo li.fatto strong { color: var(--muted); }
 ul.consigli { list-style: none; margin: 0; padding: 0; }
 ul.consigli li { display: flex; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 ul.consigli li:last-child { border-bottom: 0; }
-ul.consigli .icona { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+ul.consigli .icona { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
   font-weight: 700; font-size: 13px; background: var(--accent-soft); color: var(--accent); }
+ul.consigli .icona .ico { width: 16px; height: 16px; }
 ul.consigli li.critico .icona { background: var(--bad-bg); color: var(--bad); }
 ul.consigli li.attenzione .icona { background: var(--warn-bg); color: var(--warn); }
 
@@ -608,8 +650,6 @@ details.sezione[open] > summary { border-bottom: 1px solid var(--line); }
 /* Oggi */
 .oggi-data { margin: 20px 0 0; font: 600 13px/1.4 var(--font); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .oggi-numeri { margin-top: 8px; }
-.oggi-griglia { display: grid; gap: 0 28px; margin-top: 20px; align-items: start; }
-.oggi-colonna { min-width: 0; }
 h2.con-destra { display: flow-root; }
 h2 .h2-destra { float: right; margin-left: 12px; font: 500 13px/1.9 var(--font); color: var(--muted); text-transform: none; letter-spacing: normal; }
 .box-barra { padding: 14px 14px 4px; }
@@ -647,17 +687,6 @@ ul.consigli .icona.conto b { font-size: 18px; }
 ul.consigli .icona.conto small { font-size: 10px; font-weight: 500; }
 .oggi-voti { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); margin-top: 0; }
 .oggi-voti .progresso { height: 4px; margin-top: 10px; }
-/* La terza colonna (verifiche e voti) è quella con più righe: con due colonne va sotto a tutta larghezza, con tre è la più larga. */
-@media (min-width: 760px) {
-  .oggi-griglia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .oggi-colonna:nth-child(3) { grid-column: 1 / -1; }
-}
-@media (min-width: 1180px) {
-  .oggi-griglia { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); }
-  .oggi-colonna:nth-child(3) { grid-column: auto; }
-}
-@media (min-width: 760px) { .oggi-colonna:nth-child(-n+2) > h2:first-child { margin-top: 0; } }
-@media (min-width: 1180px) { .oggi-colonna > h2:first-child { margin-top: 0; } }
 
 /* Ricerca */
 .cerca { margin: 20px 0 0; }
@@ -676,7 +705,8 @@ details.calendario textarea { width: 100%; min-height: 200px; font: 13px/1.5 ui-
 
 @media (max-width: 560px) {
   .top { flex-direction: column; gap: 12px; }
-  .azioni { justify-content: flex-start; }
+  .azioni { justify-content: flex-start; gap: 6px; }
+  .azioni .btn { padding-inline: 11px; gap: 6px; }
   ul.giornata li { grid-template-columns: auto 1fr auto; gap: 10px; padding: 10px 12px; }
   ul.giornata .ore { font-size: 12px; }
   th, td { padding: 8px 10px; }
@@ -685,17 +715,27 @@ details.calendario textarea { width: 100%; min-height: 200px; font: 13px/1.5 ui-
 
 /* Menu: sul PC una barra laterale, sul telefono una barra fissa in basso con le sole icone (il nome della sezione aperta sotto la sua).
    Le regole col tema servono a coprire i bottoni a pillola dei temi Nothing e Ultra, pensati per la riga di schede. */
+/* Sul PC la pagina usa tutto lo schermo (fino a 2560px): più spazio = più riquadri affiancati, non margini vuoti.
+   Il menu laterale si può ridurre alle sole icone (#stringi-menu, ricordato sul dispositivo) per guadagnare altro spazio. */
 @media (min-width: 1000px) {
-  main { max-width: 1480px; }
+  main { --menu-w: 210px; max-width: 2560px; padding-inline: clamp(16px, 2.2vw, 44px); }
+  main:has(#app.stretto) { --menu-w: 58px; }
   /* L'intestazione (titolo, Profili, Aggiorna) resta in cima mentre si scorre, allineata ai contenuti accanto al menu. */
-  main:has(#app:not([hidden])) .top { position: sticky; top: 0; z-index: 4; background: var(--bg); margin: -24px 0 0; padding: 20px 0 14px 246px; box-shadow: 0 1px 0 var(--line); }
-  main:has(#app:not([hidden])) > .avviso { margin-left: 246px; }
-  #app:not([hidden]) { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 0 36px; align-items: start; }
+  main:has(#app:not([hidden])) .top { position: sticky; top: 0; z-index: 4; background: var(--bg); margin: -24px 0 0; padding: 20px 0 14px calc(var(--menu-w) + 36px); box-shadow: 0 1px 0 var(--line); }
+  main:has(#app:not([hidden])) > .avviso { margin-left: calc(var(--menu-w) + 36px); }
+  #app:not([hidden]) { display: grid; grid-template-columns: var(--menu-w) minmax(0, 1fr); gap: 0 36px; align-items: start; }
   .tabs { flex-direction: column; gap: 2px; position: sticky; top: 16px; margin-top: 24px; box-shadow: none; overflow: visible; }
   .tabs button { border-bottom: 0; border-radius: var(--r); padding: 10px 12px; }
   .tabs button[aria-selected="true"] { background: var(--accent-soft); }
   .tabs .conta-nuovi { margin-left: auto; }
+  #app.stretto .tabs button, :root[data-tema] #app.stretto .tabs button { position: relative; justify-content: center; padding: 10px 0; }
+  #app.stretto .tabs .nome { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  #app.stretto .tabs .conta-nuovi { position: absolute; top: 1px; right: 1px; margin: 0; }
+  #app.stretto .tabs .ico { width: 20px; height: 20px; }
 }
+@media (max-width: 999px) { #stringi-menu { display: none; } }
+/* Ogni scheda è un «contenitore»: i suoi riquadri si dispongono secondo lo spazio che hanno davvero (menu aperto o chiuso). */
+#app > section[role="tabpanel"] { container: scheda / inline-size; min-width: 0; }
 @media (max-width: 700px) {
   main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .tabs, :root[data-tema] .tabs { position: fixed; z-index: 5; left: 0; right: 0; bottom: 0; margin: 0; gap: 0; justify-content: space-around;
@@ -783,3 +823,97 @@ ul.eventi-assenze li:last-child { border-bottom: 0; }
 ul.eventi-assenze li > span:last-child { font-size: 12px; font-weight: 600; }
 /* Nothing: i pallini delle verifiche restano rossi (l'unico colore del tema). */
 :root[data-tema="nothing"] .pillola.v { background: var(--bad-bg); color: var(--bad); }
+
+/* ---------- Oggi come plancia ----------
+   Sul telefono i riquadri sono una colonna sola, nell'ordine di sempre. Più spazio c'è, più colonne: da 900px di scheda
+   compaiono anche i riquadri «largo» (carico, voti, assenze, mese, circolari, cosa fare), così sul PC si vede tutto insieme. */
+.plancia { display: grid; gap: 4px 24px; margin-top: 8px; align-items: start; grid-auto-flow: row dense; }
+.tile { min-width: 0; }
+.tile > h2 { display: flex; align-items: center; gap: 8px; margin: 24px 0 10px; }
+.tile > h2 > .ico { margin: 0; }
+.tile-titolo { flex: 1; min-width: 0; }
+.tile .h2-destra { float: none; margin: 0; white-space: nowrap; }
+.tile .apri { margin-left: 4px; white-space: nowrap; display: inline-flex; align-items: center; gap: 2px; }
+.tile.largo { display: none; }
+@container scheda (min-width: 700px) {
+  .plancia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile.doppio { grid-column: span 2; }
+}
+@container scheda (min-width: 900px) { .tile.largo { display: block; } }
+@container scheda (min-width: 1100px) {
+  .plancia { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  /* i riquadri lunghi scorrono al loro interno: un elenco lungo non spinge giù tutto il resto */
+  .tile > .box:not(.adesso), .tile > .azioni-voti { max-height: 430px; overflow-y: auto; }
+}
+.plancia .adesso { min-height: 100%; }
+.oggi-numeri .card { min-width: 0; }
+
+/* I prossimi 14 giorni in piccolo (riquadro della plancia) */
+.tile .quattordici { margin-bottom: 0; gap: 5px; }
+.tile .giorno-14 { padding: 6px 2px; }
+
+/* Andamento voti per materia */
+ul.mini-materie { list-style: none; margin: 0; padding: 4px 0; }
+ul.mini-materie li { display: grid; grid-template-columns: minmax(0, 1fr) 90px 44px; gap: 10px; align-items: center; padding: 7px 14px; }
+ul.mini-materie li + li { border-top: 1px solid var(--line); }
+ul.mini-materie .nome { display: flex; align-items: center; min-width: 0; font-size: 14px; }
+ul.mini-materie .nome span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ul.mini-materie .spark { height: 28px; }
+ul.mini-materie b { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Il mese in piccolo */
+.mini-mese .cal-griglia { gap: 3px; }
+.mini-mese .giorno-cal { min-height: 36px; padding: 3px 1px; gap: 2px; align-items: center; }
+.mini-mese .giorno-cal .num { font-size: 13px; text-align: center; padding: 0; }
+.mini-mese .cal-punti { display: flex; }
+.mini-mese .cal-et { display: none; }
+
+/* Le ultime circolari */
+ul.mini-circolari { list-style: none; margin: 0; padding: 0; }
+ul.mini-circolari li { padding: 10px 14px; display: grid; gap: 2px; }
+ul.mini-circolari li + li { border-top: 1px solid var(--line); }
+ul.mini-circolari a { color: var(--text); font-weight: 700; text-decoration: none; }
+ul.mini-circolari a:hover { color: var(--accent); }
+ul.mini-circolari .muted { font-size: 12px; }
+
+/* ---------- le altre schede quando lo spazio è tanto ---------- */
+.agenda-destra > div { min-width: 0; }
+@container scheda (min-width: 1500px) {
+  .agenda-griglia { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.4fr); }
+  .agenda-destra { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; align-items: start; }
+  ul.circolari { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .voti-griglia { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+  .orario-layout { grid-template-columns: minmax(0, 1fr) 420px; }
+}
+@container scheda (min-width: 2100px) { ul.circolari { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.compiti-sotto { display: grid; gap: 0 28px; align-items: start; grid-template-columns: repeat(auto-fit, minmax(min(100%, 620px), 1fr)); }
+.compiti-sotto > div { min-width: 0; }
+
+/* ---------- i temi speciali con le novità ---------- */
+:root[data-tema="quaderno"], :root[data-tema="terminale"], :root[data-tema="nothing"], :root[data-tema="ultra"] { --ombra: none; }
+:root[data-tema="quaderno"] { --zm-guance: #e3a3a3; --zm-extra: #c0502b; }
+/* Terminale: tutto testo. Restano solo le icone del menu (sul telefono sono l'unica cosa nella barra in basso). */
+:root[data-tema="terminale"] .mascotte, :root[data-tema="terminale"] .ico-m, :root[data-tema="terminale"] h2 > .ico,
+:root[data-tema="terminale"] .card-ico, :root[data-tema="terminale"] .btn .ico, :root[data-tema="terminale"] .link .ico { display: none; }
+:root[data-tema="terminale"] .btn.solo-icona .ico { display: block; } /* senza l'icona il bottone sarebbe vuoto */
+:root[data-tema="terminale"] .vuoto.grande { padding: 24px 18px; }
+:root[data-tema="terminale"] .vuoto-testo::before { content: "$ "; color: var(--accent); }
+:root[data-tema="terminale"] .tile > h2::before { content: "## "; color: var(--muted); }
+/* Nothing: icone sottili, bianche; la mascotte in bianco e grigio con il solo rosso sulle guance. */
+:root[data-tema="nothing"] .ico { stroke-width: 1.5; }
+:root[data-tema="nothing"] .ico-m, :root[data-tema="nothing"] h2 > .ico { color: var(--text); }
+:root[data-tema="nothing"] .card-ico { background: none; border: 1px solid var(--line); color: var(--text); }
+:root[data-tema="nothing"] { --zm-corpo: #f2f2f2; --zm-scuro: #8a8a8a; --zm-viso: #fff; --zm-tasca: #c8c8c8; --zm-occhi: #000; --zm-guance: #d71921; --zm-extra: #d71921; }
+:root[data-tema="nothing"] .benvenuto { background: var(--card); border: 1px solid var(--line); }
+/* Ultra: icone nere, la mascotte è una lattina nera con i dettagli azzurri; i graffi stanno già dove sarebbe l'icona delle tessere. */
+:root[data-tema="ultra"] .ico-m, :root[data-tema="ultra"] h2 > .ico { color: #111; }
+:root[data-tema="ultra"] .card-ico { display: none; }
+:root[data-tema="ultra"] .card.con-ico { padding-right: 16px; }
+:root[data-tema="ultra"] { --zm-corpo: #1b1d20; --zm-scuro: #000; --zm-viso: #f4f5f6; --zm-tasca: var(--azzurro); --zm-occhi: #111; --zm-guance: var(--azzurro); --zm-extra: var(--azzurro); }
+:root[data-tema="ultra"] .benvenuto { background: rgba(255, 255, 255, .84); border: 1px solid var(--line); backdrop-filter: blur(2px); }
+:root[data-tema="ultra"] .tile > h2 { font: 900 21px/1.2 var(--font-titoli); }
+@media (max-width: 560px) {
+  .benvenuto { padding: 12px 14px; gap: 12px; }
+  .benvenuto .mascotte { width: 64px; height: 64px; }
+  .vuoto .mascotte { width: 60px; height: 60px; }
+}
