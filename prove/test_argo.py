@@ -1,6 +1,7 @@
 """Il login di Argo didUP, con risposte finte: nessun collegamento vero."""
 
 import unittest
+from datetime import datetime
 from unittest import mock
 
 from archivio import CredenzialiRifiutate
@@ -87,6 +88,32 @@ class Login(unittest.TestCase):
         client = self.client(risposta(LOGIN_URL, testo="<div class='alert'><b>Username e/o password non validi</div></div></b><<<"))
         with self.assertRaises(CredenzialiRifiutate):
             client._get_code("verificatore")
+
+
+class Api(unittest.TestCase):
+    def client(self, risposta_api):
+        client = ArgoClient("SCUOLA", "utente", "password")
+        client.token = {"access_token": "accesso"}
+        client.token_expire = datetime(2026, 11, 18, 10, 0)
+        client.session = mock.Mock()
+        client.session.request.return_value = risposta_api
+        return client
+
+    def test_indirizzo_e_intestazioni_del_nuovo_backend(self):
+        """Dal 17/11/2026 i dati stanno su didattica.portaleargo.it, che vuole le intestazioni del client web."""
+        client = self.client(Risposta(stato=200, dati={"success": True, "data": {"ok": 1}}))
+        self.assertEqual(client._api("profilo"), {"ok": 1})
+        metodo, url = client.session.request.call_args.args
+        intestazioni = client.session.request.call_args.kwargs["headers"]
+        self.assertEqual((metodo, url), ("GET", "https://didattica.portaleargo.it/famiglia/api/profilo"))
+        self.assertEqual((intestazioni["os-type"], intestazioni["argo-client-version"]), ("WEB", "4.3.0"))
+
+    def test_errore_con_message_invece_di_msg(self):
+        """Il nuovo backend spiega l'errore in «message»."""
+        client = self.client(Risposta(stato=401, dati={"success": False, "message": "Provided token isn't active"}))
+        with self.assertRaisesRegex(ArgoError, "token isn't active") as errore:
+            client._api("profilo")
+        self.assertFalse(errore.exception.temporaneo)
 
 
 if __name__ == "__main__":

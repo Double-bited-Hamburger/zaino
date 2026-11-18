@@ -15,14 +15,15 @@ import requests
 from archivio import CredenzialiRifiutate, ErroreRegistro
 
 CLIENT_ID = "72fd6dea-d0ab-4bb9-8eaa-3ac24c84886c"
-CLIENT_VERSION = "1.30.2"
-STORE_URL = "https://itunes.apple.com/lookup?bundleId=it.argosoft.didup.famiglia.new&country=it"
+# Dal 17/11/2026 l'API dei dati sta su didattica.portaleargo.it e vuole le intestazioni del client web di Argo.
+CLIENT_VERSION = "4.3.0"
+OS_TYPE = "WEB"
 REDIRECT_URI = "it.argosoft.didup.famiglia.new://login-callback"
 SCOPES = "openid offline profile user.roles argo"
 AUTH_URL = "https://auth.portaleargo.it/oauth2/auth"
 TOKEN_URL = "https://auth.portaleargo.it/oauth2/token"
 LOGIN_URL = "https://www.portaleargo.it/auth/sso/login"
-API_URL = "https://www.portaleargo.it/appfamiglia/api/rest/"
+API_URL = "https://didattica.portaleargo.it/famiglia/api/"  # il vecchio www.portaleargo.it/appfamiglia/api/rest/ risponde 503
 TIMEOUT = 30
 
 
@@ -37,14 +38,6 @@ def _random_string(length):
 
 def _format_date(date):
     return date.strftime("%Y-%m-%d %H:%M:%S.") + f"{date.microsecond // 1000:03d}"
-
-
-def _versione_store():
-    """Versione corrente dell'app: Argo rifiuta i client con una versione vecchia."""
-    try:
-        return requests.get(STORE_URL, timeout=TIMEOUT).json()["results"][0]["version"]
-    except (requests.RequestException, ValueError, LookupError):
-        return None
 
 
 def _query_param(url, name):
@@ -138,7 +131,6 @@ class ArgoClient:
         self.token = None
         self.token_expire = None
         self.login_data = None
-        self.version = CLIENT_VERSION
 
     def _get_code(self, code_verifier):
         digest = hashlib.sha256(code_verifier.encode()).digest()
@@ -217,7 +209,8 @@ class ArgoClient:
     def _api(self, path, body=None):
         headers = {
             "accept": "application/json",
-            "argo-client-version": self.version,
+            "argo-client-version": CLIENT_VERSION,
+            "os-type": OS_TYPE,
             "authorization": f"Bearer {self.token['access_token']}",
             "x-date-exp-auth": _format_date(self.token_expire),
         }
@@ -238,11 +231,8 @@ class ArgoClient:
         if not isinstance(data, dict):
             raise ArgoError(f"Argo ha dato una risposta illeggibile (/{path}, HTTP {res.status_code}): riprova tra poco.", temporaneo=True)
         if not data.get("success") or "data" not in data:
-            if "ultima versione" in (data.get("msg") or "") and self.version == CLIENT_VERSION:
-                self.version = _versione_store() or CLIENT_VERSION
-                if self.version != CLIENT_VERSION:
-                    return self._api(path, body)
-            raise ArgoError(f"Argo ha risposto con un errore (/{path}): {data.get('msg') or res.status_code}", temporaneo=res.status_code >= 500)
+            messaggio = data.get("msg") or data.get("message") or res.status_code
+            raise ArgoError(f"Argo ha risposto con un errore (/{path}): {messaggio}", temporaneo=res.status_code >= 500)
         return data["data"]
 
     def login(self):
@@ -252,6 +242,7 @@ class ArgoClient:
             {
                 "lista-opzioni-notifiche": "{}",
                 "lista-x-auth-token": "[]",
+                "x-auth-token-corrente": "null",
                 "clientID": _random_string(163),
             },
         )
