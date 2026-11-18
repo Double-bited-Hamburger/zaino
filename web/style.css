@@ -452,14 +452,15 @@ ul.consigli li.attenzione .icona { background: var(--warn-bg); color: var(--warn
 /* Grafici */
 .chart-title { font-weight: 600; margin: 0; }
 .chart-sub { color: var(--muted); font-size: 13px; margin: 2px 0 12px; }
-.heat { overflow-x: auto; padding-bottom: 6px; }
+.heat { --cella: 15px; overflow-x: auto; padding-bottom: 6px; }
+@media (min-width: 1000px) { .heat { --cella: 19px; } }
 .heat-in { display: inline-block; min-width: 100%; }
-.heat-mesi, .heat-griglia { display: grid; grid-auto-flow: column; grid-auto-columns: 15px; gap: 3px; }
-.heat-mesi { height: 16px; font-size: 11px; color: var(--muted); margin-left: 30px; white-space: nowrap; }
+.heat-mesi, .heat-griglia { display: grid; grid-auto-flow: column; grid-auto-columns: var(--cella); gap: 3px; }
+.heat-mesi { height: 16px; font-size: 11px; color: var(--muted); margin-left: 34px; white-space: nowrap; }
 .heat-corpo { display: flex; gap: 6px; }
-.heat-giorni { display: grid; grid-template-rows: repeat(7, 15px); gap: 3px; font-size: 11px; color: var(--muted); line-height: 15px; width: 24px; }
-.heat-griglia { grid-template-rows: repeat(7, 15px); }
-.heat-griglia i { border-radius: 3px; border: 1px solid transparent; }
+.heat-giorni { display: grid; grid-template-rows: repeat(var(--righe, 7), var(--cella)); gap: 3px; font-size: 11px; color: var(--muted); line-height: var(--cella); width: 28px; }
+.heat-griglia { grid-template-rows: repeat(var(--righe, 7), var(--cella)); }
+.heat-griglia i { border-radius: 4px; border: 1px solid transparent; }
 .heat-griglia i.vuoto { border-color: var(--line); opacity: .45; }
 .heat-griglia i.futuro { border: 1px dashed var(--axis); }
 .heat-griglia i.oggi { outline: 2px solid var(--text); outline-offset: 1px; }
@@ -591,14 +592,125 @@ ul.eventi li > div { flex: 1; min-width: 0; }
 .sett-titolo { margin: 0; padding: 10px 14px; font-weight: 600; border-bottom: 1px solid var(--line); }
 .sett-vuoto { margin: 0; padding: 14px; }
 .sett-testo { display: block; }
-@media (min-width: 1000px) {
-  .settimana { gap: 10px; }
-  .sett-giorno { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  .sett-corpo { display: block; margin: 0; flex: 1; min-height: 240px; }
-  .sett-titolo { display: none; }
-  .sett-lista label { padding: 9px 10px; gap: 8px; font-size: 13px; }
-  .sett-vuoto { font-size: 13px; padding: 12px 10px; }
+.sett-oggi { display: none; }
+.sett-giorno.libero .sett-vuoto { text-align: center; }
+
+/* Compiti: un riquadro per compito (settimana e scaduti). Spunta e materia in alto, il testo intero, sotto le etichette lette dal testo. */
+ul.carte { list-style: none; margin: 0; padding: 10px; display: grid; gap: 10px; }
+li.compito { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 10px 12px 12px; display: grid; gap: 8px; min-width: 0; transition: border-color .15s; }
+li.compito:hover { border-color: var(--axis); }
+.compito-testa { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.compito-testa .materia-pill { max-width: calc(100% - 27px); }
+.compito-testa input { -webkit-appearance: none; appearance: none; width: 19px; height: 19px; margin: 0; flex: none; display: grid; place-content: center;
+  border-radius: 6px; border: 1.5px solid var(--axis); background: var(--card); cursor: pointer; }
+.compito-testa input:hover { border-color: var(--accent); }
+.compito-testa input:checked { background: var(--ok); border-color: var(--ok); }
+.compito-testa input:checked::before { content: ""; width: 10px; height: 5px; border: solid var(--card); border-width: 0 0 2.2px 2.2px; transform: translateY(-1px) rotate(-45deg); }
+.materia-pill { --tinta-c: hsl(var(--tinta, 215) 62% 50%); display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 2px 8px; border-radius: 7px;
+  font-size: 12px; font-weight: 700; line-height: 1.5; color: color-mix(in srgb, var(--tinta-c) 78%, var(--text));
+  background: color-mix(in srgb, var(--tinta-c) 13%, transparent); border: 1px solid color-mix(in srgb, var(--tinta-c) 30%, transparent); }
+.materia-pill > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.materia-pill .ico { width: 13px; height: 13px; }
+.compito-testa .punto-nuovo { flex: none; }
+.stato-compito { margin-left: auto; flex: none; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+.stato-compito.bad { background: var(--bad-bg); color: var(--bad); }
+.compito-data { margin: 0; font-size: 12px; font-weight: 600; color: var(--bad); }
+.compito-testo { font: inherit; font-size: 14px; line-height: 1.55; text-align: left; color: var(--text); background: none; border: 0; padding: 0; cursor: pointer; overflow-wrap: anywhere; }
+.compito-testo:hover { color: color-mix(in srgb, var(--text) 65%, var(--accent)); }
+.compito-piede { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; padding-top: 8px; border-top: 1px solid var(--line); }
+.etichetta-compito { font: 500 11.5px/1.5 ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; padding: 1px 6px; border-radius: 5px;
+  background: var(--track); color: var(--muted); white-space: nowrap; }
+.compito-piede .btn { margin-left: auto; }
+li.compito.fatto { background: transparent; }
+li.compito.fatto .compito-testo { text-decoration: line-through; color: var(--muted); }
+li.compito.fatto .materia-pill, li.compito.fatto .compito-piede, li.compito.fatto .compito-data { opacity: .6; }
+li.compito.fatto .compito-data { color: var(--muted); }
+li.compito.scaduto { background: color-mix(in srgb, var(--bad-bg) 65%, var(--card)); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+ul.carte.elenco-scaduti { padding: 0; }
+
+/* Compiti: il pannello in cima con ricerca, pillole per materia e avanzamento. */
+.pannello-compiti { margin-top: 20px; display: grid; gap: 14px; }
+.pannello-compiti .cerca { margin: 0; }
+.pannello-compiti .cerca input { background: var(--bg); }
+.cerca.con-ico { position: relative; }
+.cerca.con-ico > .ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; color: var(--muted); pointer-events: none; }
+.cerca.con-ico input { padding-left: 38px; }
+#compiti-filtri { display: grid; gap: 14px; }
+.filtro-materie { display: flex; flex-wrap: wrap; gap: 6px; }
+.filtro-materia { font: inherit; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 99px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; }
+.filtro-materia i { width: 8px; height: 8px; border-radius: 50%; background: hsl(var(--tinta, 215) 62% 50%); }
+.filtro-materia:hover { border-color: var(--axis); }
+/* Sul telefono le pillole delle materie stanno su una riga che scorre di lato, invece di occupare tre righe. */
+@media (max-width: 700px) {
+  .filtro-materie { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  .filtro-materie::-webkit-scrollbar { display: none; }
+  .filtro-materia { flex: none; }
 }
+.filtro-materia[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.filtro-materia[aria-pressed="true"] i { background: var(--on-accent); }
+.pannello-compiti .barra-azioni { margin: 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.avanzamento { flex: 1; min-width: 220px; }
+.avanzamento-testo { display: flex; justify-content: space-between; gap: 8px; }
+.avanzamento .progresso i { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #2dd4bf)); }
+.barra-azioni .interruttore input { -webkit-appearance: none; appearance: none; position: relative; flex: none; width: 34px; height: 20px; margin: 0;
+  border-radius: 99px; background: var(--axis); cursor: pointer; transition: background .15s; }
+.barra-azioni .interruttore input::before { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
+.barra-azioni .interruttore input:checked { background: var(--accent); }
+.barra-azioni .interruttore input:checked::before { transform: translateX(14px); }
+@media (prefers-reduced-motion: reduce) { .barra-azioni .interruttore input, .barra-azioni .interruttore input::before { transition: none; } }
+
+/* Sul PC ogni giorno è una colonna: intestazione e compiti nello stesso riquadro; quella di oggi è piena del colore del tema.
+   Le larghezze (--colonne, da app.js) danno più spazio a oggi e meno ai giorni liberi. */
+@media (min-width: 1000px) {
+  .settimana { gap: 12px; grid-template-columns: var(--colonne, repeat(var(--giorni, 6), minmax(0, 1fr))); }
+  .sett-giorno { display: flex; flex-direction: column; min-width: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); overflow: hidden; box-shadow: var(--ombra); }
+  .sett-testa { display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+    background: color-mix(in srgb, var(--bg) 55%, var(--card)); cursor: default; }
+  .sett-testa > span:first-child { font-size: 13px; }
+  .sett-testa b { font-size: 15px; }
+  .sett-punti { margin-left: auto; }
+  .sett-oggi { display: inline-block; font: 700 10px/1.7 var(--font); letter-spacing: .08em; text-transform: uppercase; padding: 0 6px; border-radius: 5px;
+    background: color-mix(in srgb, var(--on-accent) 22%, transparent); }
+  .sett-giorno.scelto .sett-testa { background: color-mix(in srgb, var(--bg) 55%, var(--card)); color: var(--text); }
+  .sett-giorno.scelto .sett-testa > span:first-child { color: var(--muted); }
+  .sett-giorno.scelto .sett-testa b { color: var(--text); }
+  .sett-giorno.scelto .sett-punti i { background: var(--accent); }
+  .sett-giorno.passato .sett-testa b { color: var(--muted); }
+  .sett-giorno.oggi { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 30px -16px color-mix(in srgb, var(--accent) 80%, transparent); }
+  .sett-giorno.oggi .sett-testa { background: var(--accent); color: var(--on-accent); }
+  .sett-giorno.oggi .sett-testa > span:first-child, .sett-giorno.oggi .sett-testa b { color: var(--on-accent); }
+  .sett-giorno.oggi .sett-punti i { background: var(--on-accent); }
+  .sett-corpo { display: block; margin: 0; flex: 1; min-height: 220px; border: 0; border-radius: 0; background: none; }
+  .sett-titolo { display: none; }
+  .sett-vuoto { font-size: 13px; padding: 14px 10px; }
+  .sett-giorno.libero .sett-corpo { display: grid; place-items: center; }
+  .sett-giorno.libero .sett-vuoto { display: grid; justify-items: center; gap: 6px; }
+  .sett-giorno.libero .sett-vuoto .ico { width: 22px; height: 22px; }
+  .sett-corpo ul.carte { padding: 10px; }
+  .sett-corpo li.compito { padding: 10px 11px 11px; }
+  .sett-corpo .compito-testo { font-size: 13.5px; }
+}
+
+/* Il dettaglio di un compito (un tocco sul testo) e l'avviso in basso con «Annulla». */
+dialog.dettaglio { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 1px solid var(--line); border-radius: calc(var(--r-box) + 4px);
+  background: var(--card); color: var(--text); box-shadow: 0 24px 60px -20px rgba(0, 0, 0, .5); }
+dialog.dettaglio::backdrop { background: rgba(10, 14, 20, .55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.dett-corpo { padding: 16px 20px 20px; display: grid; gap: 14px; }
+.dett-testa { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dettaglio h2 { margin: 0; font-size: 18px; }
+.dettaglio h2 .muted { font: 500 15px var(--font); }
+.dett-testo { padding: 14px 16px; border-radius: var(--r-box); background: var(--bg); border: 1px solid var(--line); font-size: 15px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dettaglio .compito-piede { border-top: 0; padding-top: 0; }
+.dettaglio .note { margin: 0; }
+.dett-azioni { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.toast { position: fixed; z-index: 20; right: 20px; bottom: 20px; display: flex; align-items: center; gap: 16px; max-width: calc(100vw - 32px); padding: 11px 16px;
+  border-radius: var(--r-box); background: var(--text); color: var(--bg); font-size: 14px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .45); animation: sale .18s ease-out; }
+.toast .link { font-size: 14px; color: color-mix(in srgb, var(--accent) 55%, var(--bg)); }
+@keyframes sale { from { transform: translateY(8px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+@media (max-width: 700px) { .toast { left: 16px; right: 16px; bottom: calc(84px + env(safe-area-inset-bottom)); } }
 
 /* Voti */
 .voti-griglia { display: grid; gap: 0 28px; align-items: start; }
@@ -728,12 +840,20 @@ details.calendario textarea { width: 100%; min-height: 200px; font: 13px/1.5 ui-
   .tabs button { border-bottom: 0; border-radius: var(--r); padding: 10px 12px; }
   .tabs button[aria-selected="true"] { background: var(--accent-soft); }
   .tabs .conta-nuovi { margin-left: auto; }
+  /* Il menu è un pannello; accanto a «Compiti» quanti ne restano da fare (grigio), prima delle novità (rosso). */
+  .tabs { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-box); padding: 8px; box-shadow: var(--ombra); }
+  .tabs button[aria-selected="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent); }
+  .tabs .conta-da-fare { display: inline-block; margin-left: auto; min-width: 22px; padding: 0 6px; border-radius: 99px; font-size: 12px; font-weight: 700; line-height: 20px;
+    text-align: center; background: var(--track); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tabs button[aria-selected="true"] .conta-da-fare { background: var(--accent); color: var(--on-accent); }
+  .tabs .conta-da-fare + .conta-nuovi { margin-left: 4px; }
+  #app.stretto .tabs .conta-da-fare { display: none; }
   #app.stretto .tabs button, :root[data-tema] #app.stretto .tabs button { position: relative; justify-content: center; padding: 10px 0; }
   #app.stretto .tabs .nome { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   #app.stretto .tabs .conta-nuovi { position: absolute; top: 1px; right: 1px; margin: 0; }
   #app.stretto .tabs .ico { width: 20px; height: 20px; }
 }
-@media (max-width: 999px) { #stringi-menu { display: none; } }
+@media (max-width: 999px) { #stringi-menu, .conta-da-fare { display: none; } }
 /* Ogni scheda è un «contenitore»: i suoi riquadri si dispongono secondo lo spazio che hanno davvero (menu aperto o chiuso). */
 #app > section[role="tabpanel"] { container: scheda / inline-size; min-width: 0; }
 @media (max-width: 700px) {
@@ -895,6 +1015,8 @@ ul.mini-circolari .muted { font-size: 12px; }
 /* Terminale: tutto testo. Restano solo le icone del menu (sul telefono sono l'unica cosa nella barra in basso). */
 :root[data-tema="terminale"] .mascotte, :root[data-tema="terminale"] .ico-m, :root[data-tema="terminale"] h2 > .ico,
 :root[data-tema="terminale"] .card-ico, :root[data-tema="terminale"] .btn .ico, :root[data-tema="terminale"] .link .ico { display: none; }
+:root[data-tema="terminale"] .materia-pill .ico, :root[data-tema="terminale"] .cerca.con-ico > .ico { display: none; }
+:root[data-tema="terminale"] .cerca.con-ico input { padding-left: 12px; }
 :root[data-tema="terminale"] .btn.solo-icona .ico { display: block; } /* senza l'icona il bottone sarebbe vuoto */
 :root[data-tema="terminale"] .vuoto.grande { padding: 24px 18px; }
 :root[data-tema="terminale"] .vuoto-testo::before { content: "$ "; color: var(--accent); }

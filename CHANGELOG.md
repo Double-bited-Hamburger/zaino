@@ -1,5 +1,16 @@
 # Novità
 
+## Prossima versione
+
+- **Compiti rifatti**: ogni compito è un riquadro con la spunta, la materia nel suo colore e il testo intero. Sotto ci sono le etichette prese dal testo stesso: pagine («Pag. 838–841»), esercizi («6 esercizi», «Es. 1–4»), capitoli, Teams o Classroom, quaderno. Se il testo non le dice, non ci sono: niente di inventato. In ogni giorno vengono prima i compiti da fare, poi quelli fatti, sbiaditi.
+- **Sul PC la settimana è a colonne**: la colonna di oggi è più larga e ha l'intestazione piena del colore del tema con scritto «Oggi», i giorni liberi sono stretti. Un compito scaduto e non fatto è rosso, con scritto «Scaduto».
+- **Una materia alla volta**: le pillole sotto la ricerca mostrano solo i compiti di quella materia, nella settimana, negli scaduti e in «Tutti i compiti da fare». Sul telefono stanno su una riga che scorre di lato.
+- **Il dettaglio di un compito**: tocca il testo e si apre da solo, più grande, con le etichette, chi l'ha assegnato, «Copia testo» e «Segna come fatto».
+- **«Annulla» dopo una spunta**: quando spunti un compito compare per qualche secondo un avviso in basso con «Annulla», in tutte le schede.
+- **Scaduti con «Segna come fatto»**: gli scaduti degli ultimi giorni sono riquadri con la data e il bottone per spuntarli, e «Mostra anche i fatti» per rivedere quelli già spuntati.
+- **La mappa dell'anno più leggibile**: caselle più grandi sul PC e tutti i giorni scritti, da lunedì a sabato. La domenica compare solo se qualcosa scadeva di domenica.
+- **Il menu del PC è un pannello**, con accanto a «Compiti» quanti ne restano da fare.
+
 ## 0.7.2
 
 - **Argo si aggiorna di nuovo**: dal 17 novembre «Aggiorna» diceva «Argo ha dato una risposta illeggibile (/login, HTTP 503)», anche se l'app ufficiale funzionava. Argo ha spostato i dati del registro su un altro indirizzo (`didattica.portaleargo.it/famiglia/api/`) e quello vecchio risponde 503 a tutti; ora Zaino usa quello nuovo, con le intestazioni che il nuovo server richiede. Password, profili e dati salvati non cambiano.
