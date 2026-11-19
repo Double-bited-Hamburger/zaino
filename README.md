@@ -87,6 +87,15 @@ Si collega soltanto a:
 > [!NOTE]
 > La prima volta Windows può mostrare «Windows ha protetto il PC», perché il programma non ha una firma a pagamento: clicca *Ulteriori informazioni* → *Esegui comunque*. L'impronta SHA-256 di ogni versione è nel file `zaino.exe.sha256` della Release.
 
+**Linux**: dalla pagina della versione puoi scaricare il pacchetto pronto, `zaino_0.7.2_all.deb` (Debian, Ubuntu, Mint) o `zaino-0.7.2-1.noarch.rpm` (Fedora, RHEL, openSUSE):
+
+```bash
+sudo apt install ./zaino_0.7.2_all.deb          # Debian / Ubuntu
+sudo dnf install ./zaino-0.7.2-1.noarch.rpm     # Fedora
+```
+
+Poi apri **Zaino** dal menu delle applicazioni (oppure digita `zaino`). La prima volta il lanciatore prepara l'ambiente Python in `~/.local/share/zaino/venv`; serve Python 3.12 o successivo e Internet. Per disinstallare: `sudo apt remove zaino` / `sudo dnf remove zaino`. I tuoi profili restano nella tua cartella personale.
+
 **Linux e macOS** (o Windows, se preferisci partire dal codice). Serve [Python](https://www.python.org/downloads/) 3.12 o successivo.
 
 1. ⬇️ Scarica il codice dalla [pagina della versione](../../releases/tag/0.7.2) («Source code (zip)») e scompattalo in una cartella.

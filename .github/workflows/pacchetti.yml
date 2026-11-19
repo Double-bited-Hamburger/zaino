@@ -1,0 +1,48 @@
+name: Pacchetti Linux
+
+# Costruisce .deb e .rpm di Zaino su GitHub e li allega alla Release, come già fa exe.yml per Windows.
+# - Release pubblicata (o avvio a mano con il tag): allega i due pacchetti con i loro SHA-256.
+# - Pull request che tocca il programma: solo la prova che i pacchetti si costruiscono.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag della Release a cui allegare i pacchetti (per esempio 0.7.2)"
+        required: true
+  pull_request:
+    paths: ["*.py", "web/**", "requirements.txt", "strumenti/pacchetti_linux.py", ".github/workflows/pacchetti.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  pacchetti:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # per allegare i pacchetti alla Release
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Strumenti per i pacchetti
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev rpm
+      - name: Costruisci
+        run: python strumenti/pacchetti_linux.py release
+      - name: Impronte
+        run: cd release && sha256sum zaino_* > pacchetti.sha256 && cat pacchetti.sha256
+      - name: Allega alla Release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" release/zaino* --clobber
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pacchetti-linux
+          path: release/
